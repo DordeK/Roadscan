@@ -67,10 +67,10 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
   subscription = Accelerometer.addListener(({ x, y, z }) => {
     const now = Date.now();
 
-    // Raw magnitude of the acceleration vector (m/s² → divide by 9.81 to get G)
+    // expo-sensors returns values in G (magnitude ~1.0 at rest)
     const rawMagnitude = Math.sqrt(x * x + y * y + z * z);
-    // Net magnitude above gravity (remove the ~1G offset)
-    const netG = Math.abs(rawMagnitude - 9.81) / 9.81;
+    // Net G above gravity baseline (1.0G at rest → 0 net)
+    const netG = Math.abs(rawMagnitude - 1.0);
 
     // Log only when netG changes by more than 3% from last logged value
     const delta = Math.abs(netG - lastLoggedNetG);
