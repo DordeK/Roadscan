@@ -119,7 +119,7 @@ export default function HomeScreen() {
               );
             }
           } catch (err) {
-            console.warn('[HomeScreen] logPothole failed:', err.message);
+            console.warn('[HomeScreen] logPothole failed:', err.message, err.response?.data);
           }
         },
       });
