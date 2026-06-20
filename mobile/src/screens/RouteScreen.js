@@ -10,9 +10,9 @@ import {
   Linking,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 import { geocodeAddress, getRoute, haversineDistance, getPotholesAlongRoute } from '../services/mapbox';
 import { getNearbyPotholes } from '../services/api';
@@ -38,7 +38,33 @@ export default function RouteScreen() {
   const [fromCoord, setFromCoord] = useState(null);        // { lat, lng }
   const [toCoord, setToCoord] = useState(null);            // { lat, lng }
 
+  const [locating, setLocating] = useState(false);
   const mapRef = useRef(null);
+
+  const handleUseMyLocation = async () => {
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Location permission is required.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { latitude, longitude } = loc.coords;
+      // Reverse geocode to get a human-readable label
+      const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      const label = place
+        ? [place.street, place.city].filter(Boolean).join(', ') || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+        : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      setFromText(label);
+      // Store coords directly so we skip geocoding for the "From" field
+      setFromCoord({ lat: latitude, lng: longitude });
+    } catch (err) {
+      Alert.alert('Error', 'Could not get your location.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const handleFindRoute = async () => {
     const fromTrimmed = fromText.trim();
@@ -54,9 +80,9 @@ export default function RouteScreen() {
     setPotholes([]);
 
     try {
-      // 1. Geocode both addresses
+      // 1. Geocode addresses (skip From if we already have coords from "Use my location")
       const [fromResult, toResult] = await Promise.all([
-        geocodeAddress(fromTrimmed),
+        fromCoord ? Promise.resolve(fromCoord) : geocodeAddress(fromTrimmed),
         geocodeAddress(toTrimmed),
       ]);
 
@@ -141,12 +167,22 @@ export default function RouteScreen() {
           <TextInput
             style={styles.textInput}
             value={fromText}
-            onChangeText={setFromText}
+            onChangeText={(t) => { setFromText(t); setFromCoord(null); }}
             placeholder="Starting location"
             placeholderTextColor="#555"
             returnKeyType="next"
             editable={!loading}
           />
+          <TouchableOpacity
+            style={styles.locateBtn}
+            onPress={handleUseMyLocation}
+            disabled={loading || locating}
+          >
+            {locating
+              ? <ActivityIndicator size="small" color="#2196F3" />
+              : <Text style={styles.locateBtnText}>📍</Text>
+            }
+          </TouchableOpacity>
         </View>
 
         <View style={styles.divider} />
@@ -290,6 +326,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     marginLeft: 38,
     marginVertical: 2,
+  },
+  locateBtn: {
+    padding: 6,
+  },
+  locateBtnText: {
+    fontSize: 18,
   },
   findBtn: {
     backgroundColor: '#2196F3',
