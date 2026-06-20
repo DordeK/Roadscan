@@ -14,8 +14,8 @@ export const MIN_CONSECUTIVE_MOTION = 5;
 export const MOTION_WINDOW_MS = 1500;
 
 // V-spike thresholds (m/s²): asymmetric — down spike is sharper than up recovery
-export const V_SPIKE_DOWN_MS2 = 2.5;   // wheel dropping into hole
-export const V_SPIKE_UP_MS2 = 1.8;     // wheel climbing back out
+export const V_SPIKE_DOWN_MS2 = 1.5;   // wheel dropping into hole
+export const V_SPIKE_UP_MS2 = 1.0;     // wheel climbing back out
 
 // Severity classification based on max V-spike magnitude (m/s²)
 export const SEVERITY_THRESHOLDS = {

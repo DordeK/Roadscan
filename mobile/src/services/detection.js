@@ -60,7 +60,7 @@ export function getCurrentSpeed() {
   return currentSpeedKmh;
 }
 
-export function startDetection({ sensitivity = 'normal', onDetect }) {
+export function startDetection({ sensitivity = 'normal', onDetect, onData }) {
   if (subscription) {
     console.warn('[detection] Already subscribed — call stopDetection first');
     return;
@@ -113,7 +113,9 @@ export function startDetection({ sensitivity = 'normal', onDetect }) {
     if (prevVertAccel !== null) {
       const delta = vertAccel - prevVertAccel;
 
-      console.log(`[raw] vert=${vertAccel.toFixed(3)} delta=${delta.toFixed(3)} prevDelta=${(prevDelta ?? 0).toFixed(3)} moving=${isMoving}(${consecutiveMotionCount}) down=${downThreshold.toFixed(1)} up=${upThreshold.toFixed(1)}`);
+      if (typeof onData === 'function') {
+        onData({ vertAccel, delta, isMoving });
+      }
 
       if (
         isMoving &&

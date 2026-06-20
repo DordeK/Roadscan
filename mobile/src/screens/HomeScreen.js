@@ -15,6 +15,10 @@ import { startLocationTracking, stopLocationTracking, getCurrentLocation } from 
 import { loadAlertSound, unloadAlertSound } from '../services/audio';
 import { logPothole } from '../services/api';
 import { getDeviceUuid, getSettings } from '../services/storage';
+import AccelerationGraph from '../components/AccelerationGraph';
+import { V_SPIKE_DOWN_MS2, V_SPIKE_UP_MS2 } from '../constants/detection';
+
+const MAX_GRAPH_SAMPLES = 100;
 
 export default function HomeScreen() {
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -22,6 +26,10 @@ export default function HomeScreen() {
   const [settings, setSettings] = useState(null);
   const [todayCount, setTodayCount] = useState(0);
   const [lastDetection, setLastDetection] = useState(null);
+  const [graphSamples, setGraphSamples] = useState([]);
+  const [graphDetections, setGraphDetections] = useState([]);
+  const graphSamplesRef = useRef([]);
+  const graphDetectionsRef = useRef([]);
   const deviceUuidRef = useRef(null);
   const todayCountRef = useRef(0);
 
@@ -89,7 +97,17 @@ export default function HomeScreen() {
       const currentSettings = await getSettings();
       startDetection({
         sensitivity: currentSettings.sensitivity ?? 'normal',
+        onData: ({ vertAccel, delta, isMoving }) => {
+          const next = [...graphSamplesRef.current, { vertAccel, delta, isMoving }].slice(-MAX_GRAPH_SAMPLES);
+          graphSamplesRef.current = next;
+          setGraphSamples([...next]);
+        },
         onDetect: async ({ severity, gForce }) => {
+          // Mark detection at current sample position
+          const idx = Math.max(0, graphSamplesRef.current.length - 1);
+          const nextDet = [...graphDetectionsRef.current, { sampleIndex: idx }].slice(-20);
+          graphDetectionsRef.current = nextDet;
+          setGraphDetections([...nextDet]);
           setLastDetection({ severity, gForce, time: new Date() });
           setTodayCount((c) => c + 1);
 
@@ -179,6 +197,16 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
+
+      {/* Acceleration graph */}
+      {isMonitoring && (
+        <AccelerationGraph
+          samples={graphSamples}
+          detections={graphDetections}
+          downThreshold={V_SPIKE_DOWN_MS2}
+          upThreshold={V_SPIKE_UP_MS2}
+        />
+      )}
 
       {/* Last detection pill */}
       {lastDetection && (
