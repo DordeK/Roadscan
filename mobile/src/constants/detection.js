@@ -6,18 +6,7 @@ export const BASE_THRESHOLDS = {
   high: 0.4,   // G net — severe pothole / large impact
 };
 
-// Per-car-type multipliers on the base thresholds.
-// Higher multiplier = less sensitive (requires bigger spike to trigger).
-// Lower multiplier  = more sensitive (smaller spike triggers).
-export const CAR_TYPE_MULTIPLIERS = {
-  sedan: 1.0,  // baseline
-  suv: 1.2,    // higher suspension absorbs more
-  sports: 0.8, // stiffer suspension — feels bumps more acutely
-  truck: 1.3,  // heavy-duty suspension, dampens impacts
-  van: 1.1,    // slightly softer ride than sedan
-};
-
-// Sensitivity multipliers applied on top of the car-type multiplier.
+// Sensitivity multipliers applied on top of the base thresholds.
 // "High" sensitivity → lower effective threshold → triggers more easily.
 export const SENSITIVITY_MULTIPLIERS = {
   low: 1.2,    // harder to trigger

@@ -14,20 +14,11 @@ import { startDetection, stopDetection } from '../services/detection';
 import { startLocationTracking, stopLocationTracking, getCurrentLocation } from '../services/location';
 import { loadAlertSound, unloadAlertSound } from '../services/audio';
 import { logPothole } from '../services/api';
-import { getDeviceUuid, getSettings, saveSettings } from '../services/storage';
-
-const CAR_TYPES = [
-  { key: 'sedan', label: 'Sedan' },
-  { key: 'suv', label: 'SUV' },
-  { key: 'sports', label: 'Sports' },
-  { key: 'truck', label: 'Truck' },
-  { key: 'van', label: 'Van' },
-];
+import { getDeviceUuid, getSettings } from '../services/storage';
 
 export default function HomeScreen() {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [selectedCar, setSelectedCar] = useState('sedan');
   const [settings, setSettings] = useState(null);
   const [todayCount, setTodayCount] = useState(0);
   const [lastDetection, setLastDetection] = useState(null);
@@ -42,7 +33,6 @@ export default function HomeScreen() {
     (async () => {
       const s = await getSettings();
       setSettings(s);
-      setSelectedCar(s.carType ?? 'sedan');
       deviceUuidRef.current = await getDeviceUuid();
     })();
   }, []);
@@ -53,7 +43,6 @@ export default function HomeScreen() {
       (async () => {
         const s = await getSettings();
         setSettings(s);
-        if (!isMonitoring) setSelectedCar(s.carType ?? 'sedan');
       })();
     }, [isMonitoring])
   );
@@ -99,7 +88,6 @@ export default function HomeScreen() {
       console.log('[home] Starting detection...');
       const currentSettings = await getSettings();
       startDetection({
-        carType: selectedCar,
         sensitivity: currentSettings.sensitivity ?? 'normal',
         onDetect: async ({ severity, gForce }) => {
           setLastDetection({ severity, gForce, time: new Date() });
@@ -116,14 +104,13 @@ export default function HomeScreen() {
               console.warn('[HomeScreen] no device UUID, skipping save');
               return;
             }
-            console.log('[HomeScreen] saving pothole to DB...', { severity, gForce, carType: selectedCar });
+            console.log('[HomeScreen] saving pothole to DB...', { severity, gForce });
             const result = await logPothole(
               deviceUuidRef.current,
               loc.latitude,
               loc.longitude,
               severity,
-              gForce,
-              selectedCar
+              gForce
             );
             console.log('[HomeScreen] saved OK:', result);
           } catch (err) {
@@ -138,30 +125,6 @@ export default function HomeScreen() {
       Alert.alert('Error', 'Could not start monitoring: ' + err.message);
     } finally {
       setIsStarting(false);
-    }
-  };
-
-  const handleCarTypeSelect = async (carKey) => {
-    setSelectedCar(carKey);
-    await saveSettings({ carType: carKey });
-    // If already monitoring, restart detection with new car type
-    if (isMonitoring) {
-      stopDetection();
-      const currentSettings = await getSettings();
-      startDetection({
-        carType: carKey,
-        sensitivity: currentSettings.sensitivity ?? 'normal',
-        onDetect: async ({ severity, gForce }) => {
-          setLastDetection({ severity, gForce, time: new Date() });
-          setTodayCount((c) => c + 1);
-          try {
-            const loc = await getCurrentLocation();
-            if (loc && deviceUuidRef.current) {
-              await logPothole(deviceUuidRef.current, loc.latitude, loc.longitude, severity, gForce, carKey);
-            }
-          } catch (_) {}
-        },
-      });
     }
   };
 
@@ -199,24 +162,6 @@ export default function HomeScreen() {
         <Text style={[styles.statusText, isMonitoring ? styles.statusTextActive : styles.statusTextInactive]}>
           {isMonitoring ? 'Active — Monitoring for potholes' : 'Inactive'}
         </Text>
-      </View>
-
-      {/* Car type picker */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Vehicle Type</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carPicker}>
-          {CAR_TYPES.map((car) => (
-            <TouchableOpacity
-              key={car.key}
-              style={[styles.carChip, selectedCar === car.key && styles.carChipSelected]}
-              onPress={() => handleCarTypeSelect(car.key)}
-            >
-              <Text style={[styles.carChipText, selectedCar === car.key && styles.carChipTextSelected]}>
-                {car.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {/* Stats */}
@@ -351,42 +296,6 @@ const styles = StyleSheet.create({
   },
   statusTextInactive: {
     color: '#555',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    color: '#888',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  carPicker: {
-    flexDirection: 'row',
-  },
-  carChip: {
-    backgroundColor: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    marginRight: 8,
-  },
-  carChipSelected: {
-    backgroundColor: '#0D2B45',
-    borderColor: '#2196F3',
-  },
-  carChipText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  carChipTextSelected: {
-    color: '#2196F3',
-    fontWeight: '700',
   },
   statsRow: {
     flexDirection: 'row',

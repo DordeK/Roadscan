@@ -1,7 +1,6 @@
 import { Accelerometer } from 'expo-sensors';
 import {
   BASE_THRESHOLDS,
-  CAR_TYPE_MULTIPLIERS,
   SENSITIVITY_MULTIPLIERS,
   ACCELEROMETER_SAMPLE_RATE_MS,
   DETECTION_DEBOUNCE_MS,
@@ -40,20 +39,18 @@ export function getCurrentSpeed() {
  * Start accelerometer subscription.
  *
  * @param {object} options
- * @param {string} options.carType      - 'sedan' | 'suv' | 'sports' | 'truck' | 'van'
  * @param {string} options.sensitivity  - 'low' | 'normal' | 'high'
  * @param {function} options.onDetect   - callback({ severity, gForce }) when a pothole is detected
  */
-export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDetect }) {
+export function startDetection({ sensitivity = 'normal', onDetect }) {
   if (subscription) {
     console.warn('[detection] Already subscribed — call stopDetection first');
     return;
   }
 
   // Compute effective thresholds
-  const carMult = CAR_TYPE_MULTIPLIERS[carType] ?? 1.0;
   const sensMult = SENSITIVITY_MULTIPLIERS[sensitivity] ?? 1.0;
-  const combinedMult = carMult * sensMult;
+  const combinedMult = sensMult;
 
   const thresholds = {
     low: BASE_THRESHOLDS.low * combinedMult,

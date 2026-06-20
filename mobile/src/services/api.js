@@ -35,9 +35,9 @@ async function getClient() {
  * Log a newly detected pothole to the backend.
  *
  * POST /api/potholes
- * Body: { device_uuid, latitude, longitude, severity, g_force, car_type }
+ * Body: { device_uuid, latitude, longitude, severity, g_force }
  */
-export async function logPothole(deviceUuid, lat, lng, severity, gForce, carType) {
+export async function logPothole(deviceUuid, lat, lng, severity, gForce) {
   const client = await getClient();
   const response = await client.post('/api/potholes', {
     device_uuid: deviceUuid,
@@ -45,7 +45,6 @@ export async function logPothole(deviceUuid, lat, lng, severity, gForce, carType
     lng,
     severity,
     g_force: gForce,
-    car_type: carType,
   });
   return response.data;
 }
