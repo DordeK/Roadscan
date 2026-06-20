@@ -84,11 +84,32 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
 
 // Foreground-only watcher subscription (used as fallback in Expo Go)
 let foregroundSubscription = null;
+let lastPosition = null;
+let lastPositionTime = null;
+
+function estimateSpeedFromDelta(lat, lng, timestamp) {
+  if (!lastPosition || !lastPositionTime) return null;
+  const dist = haversineDistance(lastPosition.lat, lastPosition.lng, lat, lng);
+  const dt = (timestamp - lastPositionTime) / 1000; // seconds
+  if (dt <= 0) return null;
+  return (dist / dt) * 3.6; // m/s -> km/h
+}
 
 async function handleLocationUpdate(location) {
   const { latitude, longitude, speed } = location.coords;
-  const speedKmh = speed != null && speed >= 0 ? speed * 3.6 : 0;
+  const timestamp = location.timestamp ?? Date.now();
+
+  // Use GPS speed if valid, otherwise estimate from position delta
+  let speedKmh = speed != null && speed >= 0 ? speed * 3.6 : null;
+  if (speedKmh === null) {
+    speedKmh = estimateSpeedFromDelta(latitude, longitude, timestamp) ?? 0;
+  }
+
+  lastPosition = { lat: latitude, lng: longitude };
+  lastPositionTime = timestamp;
+
   setCurrentSpeed(speedKmh);
+  console.log(`[location] lat=${latitude.toFixed(5)} lng=${longitude.toFixed(5)} speed=${speedKmh.toFixed(1)}km/h (gps=${speed})`);
 
   if (speedKmh < MIN_SPEED_KMH) return;
 
@@ -180,6 +201,8 @@ export async function stopLocationTracking() {
     foregroundSubscription.remove();
     foregroundSubscription = null;
   }
+  lastPosition = null;
+  lastPositionTime = null;
 }
 
 /**

@@ -62,7 +62,7 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
 
   Accelerometer.setUpdateInterval(ACCELEROMETER_SAMPLE_RATE_MS);
 
-  let logThrottle = 0;
+  let lastLoggedNetG = 0;
 
   subscription = Accelerometer.addListener(({ x, y, z }) => {
     const now = Date.now();
@@ -72,10 +72,11 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
     // Net magnitude above gravity (remove the ~1G offset)
     const netG = Math.abs(rawMagnitude - 9.81) / 9.81;
 
-    // Log sensor data every 500ms so the console isn't flooded
-    if (now - logThrottle > 500) {
-      logThrottle = now;
-      console.log(`[sensor] x=${x.toFixed(3)} y=${y.toFixed(3)} z=${z.toFixed(3)} | raw=${rawMagnitude.toFixed(3)} netG=${netG.toFixed(3)} | speed=${currentSpeedKmh.toFixed(1)}km/h | thresholds low=${thresholds.low.toFixed(3)} med=${thresholds.medium.toFixed(3)} high=${thresholds.high.toFixed(3)}`);
+    // Log only when netG changes by more than 3% from last logged value
+    const delta = Math.abs(netG - lastLoggedNetG);
+    if (delta / Math.max(lastLoggedNetG, 0.01) > 0.03) {
+      lastLoggedNetG = netG;
+      console.log(`[sensor] netG=${netG.toFixed(3)} | speed=${currentSpeedKmh.toFixed(1)}km/h | x=${x.toFixed(3)} y=${y.toFixed(3)} z=${z.toFixed(3)}`);
     }
 
     // Must be moving
