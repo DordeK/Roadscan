@@ -112,6 +112,9 @@ export function startDetection({ sensitivity = 'normal', onDetect }) {
     if (prevVertAccel !== null) {
       const delta = vertAccel - prevVertAccel;
 
+      // Log every sample so we can tune the algorithm
+      console.log(`[raw] vert=${vertAccel.toFixed(3)} delta=${delta.toFixed(3)} prevDelta=${(prevDelta ?? 0).toFixed(3)} moving=${isMoving}(${consecutiveMotionCount}) threshold=${vSpikeThreshold.toFixed(1)}`);
+
       if (
         isMoving &&
         prevDelta !== null &&
@@ -121,7 +124,6 @@ export function startDetection({ sensitivity = 'normal', onDetect }) {
       ) {
         lastDetectionTime = now;
 
-        // Severity from the larger of the two spike magnitudes
         const spikeMag = Math.max(Math.abs(prevDelta), Math.abs(delta));
         const severity = classifySeverity(spikeMag);
         const gForce = parseFloat((spikeMag / 9.81).toFixed(3));
