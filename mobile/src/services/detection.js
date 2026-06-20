@@ -1,32 +1,56 @@
 import { Accelerometer } from 'expo-sensors';
 import {
-  BASE_THRESHOLDS,
-  SENSITIVITY_MULTIPLIERS,
   ACCELEROMETER_SAMPLE_RATE_MS,
-  DETECTION_DEBOUNCE_MS,
-  SPIKE_RESOLUTION_MS,
-  MIN_SPEED_KMH,
-  MAX_VALID_G,
+  GRAVITY_ALPHA,
+  MOTION_THRESHOLD_MS2,
+  MIN_CONSECUTIVE_MOTION,
+  MOTION_WINDOW_MS,
+  V_SPIKE_THRESHOLD_MS2,
+  SEVERITY_THRESHOLDS,
+  DETECTION_COOLDOWN_MS,
 } from '../constants/detection';
 
 // ─── Module state ─────────────────────────────────────────────────────────────
 let subscription = null;
-let lastDetectionTime = 0;
-let spikeStartTime = null;
-let spikeMaxMagnitude = 0;
 
-// Speed is written by the background location task and read here.
-// Using a module-level variable avoids bridging complexity.
+// Low-pass gravity estimate (in m/s², initialised pointing down)
+let gravity = { x: 0, y: 0, z: -9.81 };
+
+// Previous vertical acceleration reading (m/s²) for delta calculation
+let prevVertAccel = null;
+
+// Previous delta for V-spike detection
+let prevDelta = null;
+
+// Motion gate
+let consecutiveMotionCount = 0;
+let lastMotionTime = 0;
+let isMoving = false;
+
+// Cooldown
+let lastDetectionTime = 0;
+
+// Speed shared by the location service
 let currentSpeedKmh = 0;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function dot(a, b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+function magnitude(v) {
+  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+function classifySeverity(spikeMagnitude) {
+  if (spikeMagnitude >= SEVERITY_THRESHOLDS.high) return 'high';
+  if (spikeMagnitude >= SEVERITY_THRESHOLDS.medium) return 'medium';
+  return 'low';
+}
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-/**
- * Update the current vehicle speed.
- * Called by the background location task whenever a new location arrives.
- *
- * @param {number} speedKmh
- */
 export function setCurrentSpeed(speedKmh) {
   currentSpeedKmh = speedKmh >= 0 ? speedKmh : 0;
 }
@@ -35,113 +59,98 @@ export function getCurrentSpeed() {
   return currentSpeedKmh;
 }
 
-/**
- * Start accelerometer subscription.
- *
- * @param {object} options
- * @param {string} options.sensitivity  - 'low' | 'normal' | 'high'
- * @param {function} options.onDetect   - callback({ severity, gForce }) when a pothole is detected
- */
 export function startDetection({ sensitivity = 'normal', onDetect }) {
   if (subscription) {
     console.warn('[detection] Already subscribed — call stopDetection first');
     return;
   }
 
-  // Compute effective thresholds
-  const sensMult = SENSITIVITY_MULTIPLIERS[sensitivity] ?? 1.0;
-  const combinedMult = sensMult;
-
-  const thresholds = {
-    low: BASE_THRESHOLDS.low * combinedMult,
-    medium: BASE_THRESHOLDS.medium * combinedMult,
-    high: BASE_THRESHOLDS.high * combinedMult,
-  };
+  // Sensitivity adjusts the V-spike threshold
+  const sensitivityMultiplier = sensitivity === 'high' ? 0.8 : sensitivity === 'low' ? 1.2 : 1.0;
+  const vSpikeThreshold = V_SPIKE_THRESHOLD_MS2 * sensitivityMultiplier;
 
   Accelerometer.setUpdateInterval(ACCELEROMETER_SAMPLE_RATE_MS);
 
   subscription = Accelerometer.addListener(({ x, y, z }) => {
     const now = Date.now();
 
-    // expo-sensors returns values in G (magnitude ~1.0 at rest)
-    const rawMagnitude = Math.sqrt(x * x + y * y + z * z);
-    // Net G above gravity baseline (1.0G at rest → 0 net)
-    const netG = Math.abs(rawMagnitude - 1.0);
+    // expo-sensors returns G units — convert to m/s²
+    const ax = x * 9.81;
+    const ay = y * 9.81;
+    const az = z * 9.81;
+    const accel = { x: ax, y: ay, z: az };
 
-    // Must be moving
-    if (currentSpeedKmh < MIN_SPEED_KMH) {
-      spikeStartTime = null;
-      spikeMaxMagnitude = 0;
-      return;
-    }
+    // ── 1. Update gravity estimate (low-pass filter) ────────────────────────
+    gravity.x = GRAVITY_ALPHA * gravity.x + (1 - GRAVITY_ALPHA) * ax;
+    gravity.y = GRAVITY_ALPHA * gravity.y + (1 - GRAVITY_ALPHA) * ay;
+    gravity.z = GRAVITY_ALPHA * gravity.z + (1 - GRAVITY_ALPHA) * az;
 
-    // Debounce: skip if we just detected one
-    if (now - lastDetectionTime < DETECTION_DEBOUNCE_MS) return;
+    const gravMag = magnitude(gravity);
+    if (gravMag === 0) return;
 
-    // Ignore extreme values — likely manual phone handling
-    if (netG > MAX_VALID_G) {
-      spikeStartTime = null;
-      spikeMaxMagnitude = 0;
-      return;
-    }
+    // ── 2. Extract vertical (gravity-aligned) acceleration ─────────────────
+    // Project accel onto gravity unit vector, then subtract gravity magnitude
+    const gravUnit = { x: gravity.x / gravMag, y: gravity.y / gravMag, z: gravity.z / gravMag };
+    const vertAccel = dot(accel, gravUnit) - gravMag;
 
-    if (netG >= thresholds.low) {
-      // ── Spike onset ──────────────────────────────────────────────────────
-      if (spikeStartTime === null) {
-        spikeStartTime = now;
-        spikeMaxMagnitude = netG;
-      } else {
-        // Accumulate peak within the window
-        if (netG > spikeMaxMagnitude) spikeMaxMagnitude = netG;
-
-        // If the spike has lasted too long it's sustained vibration, not a pothole
-        if (now - spikeStartTime > SPIKE_RESOLUTION_MS) {
-          spikeStartTime = null;
-          spikeMaxMagnitude = 0;
-        }
-      }
+    // ── 3. Motion gate ──────────────────────────────────────────────────────
+    const netAccelMag = Math.abs(vertAccel);
+    if (netAccelMag > MOTION_THRESHOLD_MS2) {
+      consecutiveMotionCount++;
+      lastMotionTime = now;
     } else {
-      // ── Spike resolved (back below low threshold) ─────────────────────
-      if (spikeStartTime !== null) {
-        const spikeDuration = now - spikeStartTime;
-
-        if (spikeDuration <= SPIKE_RESOLUTION_MS && spikeMaxMagnitude >= thresholds.low) {
-          // Classify severity by peak G
-          let severity;
-          if (spikeMaxMagnitude >= thresholds.high) {
-            severity = 'high';
-          } else if (spikeMaxMagnitude >= thresholds.medium) {
-            severity = 'medium';
-          } else {
-            severity = 'low';
-          }
-
-          lastDetectionTime = now;
-          console.log(`[detection] POTHOLE detected! severity=${severity} peakG=${spikeMaxMagnitude.toFixed(3)} duration=${spikeDuration}ms thresholds: low=${thresholds.low.toFixed(3)} med=${thresholds.medium.toFixed(3)} high=${thresholds.high.toFixed(3)}`);
-
-          if (typeof onDetect === 'function') {
-            onDetect({ severity, gForce: parseFloat(spikeMaxMagnitude.toFixed(3)) });
-          }
-        }
-
-        spikeStartTime = null;
-        spikeMaxMagnitude = 0;
-      }
+      consecutiveMotionCount = 0;
     }
+
+    if (consecutiveMotionCount >= MIN_CONSECUTIVE_MOTION) {
+      isMoving = true;
+    } else if (now - lastMotionTime > MOTION_WINDOW_MS) {
+      isMoving = false;
+    }
+
+    // ── 4. V-spike detection ────────────────────────────────────────────────
+    if (prevVertAccel !== null) {
+      const delta = vertAccel - prevVertAccel;
+
+      if (
+        isMoving &&
+        prevDelta !== null &&
+        prevDelta < -vSpikeThreshold &&  // downward spike
+        delta > vSpikeThreshold &&        // followed by upward spike
+        now - lastDetectionTime > DETECTION_COOLDOWN_MS
+      ) {
+        lastDetectionTime = now;
+
+        // Severity from the larger of the two spike magnitudes
+        const spikeMag = Math.max(Math.abs(prevDelta), Math.abs(delta));
+        const severity = classifySeverity(spikeMag);
+        const gForce = parseFloat((spikeMag / 9.81).toFixed(3));
+
+        console.log(`[detection] POTHOLE! severity=${severity} spikeMag=${spikeMag.toFixed(2)}m/s² gForce=${gForce}G`);
+
+        if (typeof onDetect === 'function') {
+          onDetect({ severity, gForce });
+        }
+      }
+
+      prevDelta = delta;
+    }
+
+    prevVertAccel = vertAccel;
   });
 }
 
-/**
- * Stop accelerometer subscription and reset state.
- */
 export function stopDetection() {
   if (subscription) {
     subscription.remove();
     subscription = null;
   }
-  spikeStartTime = null;
-  spikeMaxMagnitude = 0;
+  prevVertAccel = null;
+  prevDelta = null;
+  consecutiveMotionCount = 0;
+  isMoving = false;
   lastDetectionTime = 0;
+  gravity = { x: 0, y: 0, z: -9.81 };
 }
 
 export function isDetecting() {
