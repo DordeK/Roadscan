@@ -5,7 +5,8 @@ import {
   MOTION_THRESHOLD_MS2,
   MIN_CONSECUTIVE_MOTION,
   MOTION_WINDOW_MS,
-  V_SPIKE_THRESHOLD_MS2,
+  V_SPIKE_DOWN_MS2,
+  V_SPIKE_UP_MS2,
   SEVERITY_THRESHOLDS,
   DETECTION_COOLDOWN_MS,
 } from '../constants/detection';
@@ -65,9 +66,9 @@ export function startDetection({ sensitivity = 'normal', onDetect }) {
     return;
   }
 
-  // Sensitivity adjusts the V-spike threshold
   const sensitivityMultiplier = sensitivity === 'high' ? 0.8 : sensitivity === 'low' ? 1.2 : 1.0;
-  const vSpikeThreshold = V_SPIKE_THRESHOLD_MS2 * sensitivityMultiplier;
+  const downThreshold = V_SPIKE_DOWN_MS2 * sensitivityMultiplier;
+  const upThreshold = V_SPIKE_UP_MS2 * sensitivityMultiplier;
 
   Accelerometer.setUpdateInterval(ACCELEROMETER_SAMPLE_RATE_MS);
 
@@ -112,14 +113,13 @@ export function startDetection({ sensitivity = 'normal', onDetect }) {
     if (prevVertAccel !== null) {
       const delta = vertAccel - prevVertAccel;
 
-      // Log every sample so we can tune the algorithm
-      console.log(`[raw] vert=${vertAccel.toFixed(3)} delta=${delta.toFixed(3)} prevDelta=${(prevDelta ?? 0).toFixed(3)} moving=${isMoving}(${consecutiveMotionCount}) threshold=${vSpikeThreshold.toFixed(1)}`);
+      console.log(`[raw] vert=${vertAccel.toFixed(3)} delta=${delta.toFixed(3)} prevDelta=${(prevDelta ?? 0).toFixed(3)} moving=${isMoving}(${consecutiveMotionCount}) down=${downThreshold.toFixed(1)} up=${upThreshold.toFixed(1)}`);
 
       if (
         isMoving &&
         prevDelta !== null &&
-        prevDelta < -vSpikeThreshold &&  // downward spike
-        delta > vSpikeThreshold &&        // followed by upward spike
+        prevDelta < -downThreshold &&  // downward spike
+        delta > upThreshold &&          // followed by upward spike
         now - lastDetectionTime > DETECTION_COOLDOWN_MS
       ) {
         lastDetectionTime = now;

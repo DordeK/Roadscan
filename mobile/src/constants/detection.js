@@ -13,8 +13,9 @@ export const MIN_CONSECUTIVE_MOTION = 5;
 // If no motion reading for this long, vehicle is considered stopped (ms)
 export const MOTION_WINDOW_MS = 1500;
 
-// V-spike threshold (m/s²): downward then upward delta must each exceed this
-export const V_SPIKE_THRESHOLD_MS2 = 3.5;
+// V-spike thresholds (m/s²): asymmetric — down spike is sharper than up recovery
+export const V_SPIKE_DOWN_MS2 = 2.5;   // wheel dropping into hole
+export const V_SPIKE_UP_MS2 = 1.8;     // wheel climbing back out
 
 // Severity classification based on max V-spike magnitude (m/s²)
 export const SEVERITY_THRESHOLDS = {
