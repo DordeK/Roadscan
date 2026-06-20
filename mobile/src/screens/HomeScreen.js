@@ -105,21 +105,29 @@ export default function HomeScreen() {
           setLastDetection({ severity, gForce, time: new Date() });
           setTodayCount((c) => c + 1);
 
-          // Log to backend
           try {
             const loc = await getCurrentLocation();
-            if (loc && deviceUuidRef.current) {
-              await logPothole(
-                deviceUuidRef.current,
-                loc.latitude,
-                loc.longitude,
-                severity,
-                gForce,
-                selectedCar
-              );
+            console.log('[HomeScreen] location for save:', loc, 'deviceUuid:', deviceUuidRef.current);
+            if (!loc) {
+              console.warn('[HomeScreen] no location available, skipping save');
+              return;
             }
+            if (!deviceUuidRef.current) {
+              console.warn('[HomeScreen] no device UUID, skipping save');
+              return;
+            }
+            console.log('[HomeScreen] saving pothole to DB...', { severity, gForce, carType: selectedCar });
+            const result = await logPothole(
+              deviceUuidRef.current,
+              loc.latitude,
+              loc.longitude,
+              severity,
+              gForce,
+              selectedCar
+            );
+            console.log('[HomeScreen] saved OK:', result);
           } catch (err) {
-            console.warn('[HomeScreen] logPothole failed:', err.message, err.response?.data);
+            console.warn('[HomeScreen] logPothole failed:', err.message, err.response?.status, err.response?.data);
           }
         },
       });

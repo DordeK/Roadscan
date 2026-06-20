@@ -7,6 +7,7 @@ import {
   DETECTION_DEBOUNCE_MS,
   SPIKE_RESOLUTION_MS,
   MIN_SPEED_KMH,
+  MAX_VALID_G,
 } from '../constants/detection';
 
 // ─── Module state ─────────────────────────────────────────────────────────────
@@ -62,8 +63,6 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
 
   Accelerometer.setUpdateInterval(ACCELEROMETER_SAMPLE_RATE_MS);
 
-  let lastLoggedNetG = 0;
-
   subscription = Accelerometer.addListener(({ x, y, z }) => {
     const now = Date.now();
 
@@ -71,13 +70,6 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
     const rawMagnitude = Math.sqrt(x * x + y * y + z * z);
     // Net G above gravity baseline (1.0G at rest → 0 net)
     const netG = Math.abs(rawMagnitude - 1.0);
-
-    // Log only when netG changes by more than 3% from last logged value
-    const delta = Math.abs(netG - lastLoggedNetG);
-    if (delta / Math.max(lastLoggedNetG, 0.01) > 0.03) {
-      lastLoggedNetG = netG;
-      console.log(`[sensor] netG=${netG.toFixed(3)} | speed=${currentSpeedKmh.toFixed(1)}km/h | x=${x.toFixed(3)} y=${y.toFixed(3)} z=${z.toFixed(3)}`);
-    }
 
     // Must be moving
     if (currentSpeedKmh < MIN_SPEED_KMH) {
@@ -88,6 +80,13 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
 
     // Debounce: skip if we just detected one
     if (now - lastDetectionTime < DETECTION_DEBOUNCE_MS) return;
+
+    // Ignore extreme values — likely manual phone handling
+    if (netG > MAX_VALID_G) {
+      spikeStartTime = null;
+      spikeMaxMagnitude = 0;
+      return;
+    }
 
     if (netG >= thresholds.low) {
       // ── Spike onset ──────────────────────────────────────────────────────
@@ -121,6 +120,7 @@ export function startDetection({ carType = 'sedan', sensitivity = 'normal', onDe
           }
 
           lastDetectionTime = now;
+          console.log(`[detection] POTHOLE detected! severity=${severity} peakG=${spikeMaxMagnitude.toFixed(3)} duration=${spikeDuration}ms thresholds: low=${thresholds.low.toFixed(3)} med=${thresholds.medium.toFixed(3)} high=${thresholds.high.toFixed(3)}`);
 
           if (typeof onDetect === 'function') {
             onDetect({ severity, gForce: parseFloat(spikeMaxMagnitude.toFixed(3)) });
