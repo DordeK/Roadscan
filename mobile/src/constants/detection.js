@@ -1,9 +1,9 @@
 // Base G-force thresholds for pothole detection
 // Values represent net G above gravity baseline (expo-sensors returns G units, ~1.0 at rest)
 export const BASE_THRESHOLDS = {
-  low: 0.3,   // G net — minor pothole / rough surface
-  medium: 0.7, // G net — moderate pothole
-  high: 1.5,   // G net — severe pothole / large impact
+  low: 0.08,  // G net — minor pothole / rough surface
+  medium: 0.2, // G net — moderate pothole
+  high: 0.5,   // G net — severe pothole / large impact
 };
 
 // Per-car-type multipliers on the base thresholds.
