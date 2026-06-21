@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  // TouchableOpacity,
   ScrollView,
   StyleSheet,
   Alert,
@@ -30,6 +30,7 @@ export default function HomeScreen() {
   const [mlResult, setMlResult] = useState(null);
   const [graphSamples, setGraphSamples] = useState([]);
   const [graphDetections, setGraphDetections] = useState([]);
+  const [currentSurface, setCurrentSurface] = useState(null);
   const graphSamplesRef = useRef([]);
   const graphDetectionsRef = useRef([]);
   const deviceUuidRef = useRef(null);
@@ -38,13 +39,15 @@ export default function HomeScreen() {
   // Keep ref in sync with state for the closure in startDetection callback
   useEffect(() => { todayCountRef.current = todayCount; }, [todayCount]);
 
-  // Load settings and device UUID once
+  // Load settings and device UUID, then auto-start monitoring
   useEffect(() => {
     (async () => {
       const s = await getSettings();
       setSettings(s);
       deviceUuidRef.current = await getDeviceUuid();
+      await startMonitoring();
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload settings when screen comes into focus (user may have changed them)
@@ -69,35 +72,20 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleToggleMonitoring = async () => {
-    if (isMonitoring) {
-      stopDetection();
-      stopSurfaceLogging();
-      await stopLocationTracking();
-      await unloadAlertSound();
-      setIsMonitoring(false);
-      setMlResult(null);
-      return;
-    }
-
+  const startMonitoring = async () => {
     setIsStarting(true);
     try {
-      console.log('[home] Loading alert sound...');
       await loadAlertSound();
-      console.log('[home] Starting location tracking...');
       const success = await startLocationTracking();
-      console.log('[home] Location tracking started:', success);
       if (!success) {
         Alert.alert(
           'Permission Required',
           'Location permission is required to monitor for potholes. Please enable it in Settings.',
           [{ text: 'OK' }]
         );
-        setIsStarting(false);
         return;
       }
 
-      console.log('[home] Starting detection...');
       const currentSettings = await getSettings();
       startDetection({
         sensitivity: currentSettings.sensitivity ?? 'normal',
@@ -109,16 +97,14 @@ export default function HomeScreen() {
           pushSurfaceSample(vertAccel);
         },
         onDetect: async ({ severity, gForce }) => {
-          // Mark detection at current sample position
           const idx = Math.max(0, graphSamplesRef.current.length - 1);
           const nextDet = [...graphDetectionsRef.current, { sampleIndex: idx }].slice(-20);
           graphDetectionsRef.current = nextDet;
           setGraphDetections([...nextDet]);
           setLastDetection({ severity, gForce, time: new Date() });
-          setMlResult(null); // clear previous while new one loads
+          setMlResult(null);
           setTodayCount((c) => c + 1);
 
-          // Run ML prediction on the window of samples around this detection
           const window = graphSamplesRef.current.slice(-20).map((s) => ({
             vert_accel_ms2: s.vertAccel,
             delta_ms2:      s.delta,
@@ -134,31 +120,17 @@ export default function HomeScreen() {
 
           try {
             const loc = await getCurrentLocation();
-            console.log('[HomeScreen] location for save:', loc, 'deviceUuid:', deviceUuidRef.current);
-            if (!loc) {
-              console.warn('[HomeScreen] no location available, skipping save');
-              return;
-            }
-            if (!deviceUuidRef.current) {
-              console.warn('[HomeScreen] no device UUID, skipping save');
-              return;
-            }
-            console.log('[HomeScreen] saving pothole to DB...', { severity, gForce });
-            const result = await logPothole(
-              deviceUuidRef.current,
-              loc.latitude,
-              loc.longitude,
-              severity,
-              gForce
-            );
-            console.log('[HomeScreen] saved OK:', result);
+            if (!loc || !deviceUuidRef.current) return;
+            await logPothole(deviceUuidRef.current, loc.latitude, loc.longitude, severity, gForce);
           } catch (err) {
-            console.warn('[HomeScreen] logPothole failed:', err.message, err.response?.status, err.response?.data);
+            console.warn('[HomeScreen] logPothole failed:', err.message);
           }
         },
       });
 
-      startSurfaceLogging(deviceUuidRef.current);
+      startSurfaceLogging(deviceUuidRef.current, ({ surfaceType, confidence }) => {
+        setCurrentSurface({ type: surfaceType, confidence });
+      });
       setIsMonitoring(true);
     } catch (err) {
       console.error('[home] Start monitoring failed:', err.message, err.stack);
@@ -168,17 +140,36 @@ export default function HomeScreen() {
     }
   };
 
+  const handleToggleMonitoring = async () => {
+    if (isMonitoring) {
+      stopDetection();
+      stopSurfaceLogging();
+      await stopLocationTracking();
+      await unloadAlertSound();
+      setIsMonitoring(false);
+      setMlResult(null);
+      return;
+    }
+    await startMonitoring();
+  };
+
   const severityColor = (s) =>
     s === 'high' ? '#F44336' : s === 'medium' ? '#FF9800' : '#4CAF50';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Title */}
-      <Text style={styles.title}>Pothole Tracker</Text>
-      <Text style={styles.subtitle}>Road hazard detection & alerts</Text>
+      {/* Status */}
+      <View style={[styles.statusBadge, isMonitoring ? styles.statusActive : styles.statusInactive]}>
+        {isStarting
+          ? <ActivityIndicator color="#4CAF50" size="small" style={{ marginRight: 8 }} />
+          : <View style={[styles.statusDot, isMonitoring ? styles.dotActive : styles.dotInactive]} />
+        }
+        <Text style={[styles.statusText, isMonitoring ? styles.statusTextActive : styles.statusTextInactive]}>
+          {isStarting ? 'Starting…' : isMonitoring ? 'Active — Monitoring' : 'Inactive'}
+        </Text>
+      </View>
 
-      {/* Toggle button */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={[styles.toggleBtn, isMonitoring ? styles.toggleBtnActive : styles.toggleBtnInactive]}
         onPress={handleToggleMonitoring}
         disabled={isStarting}
@@ -194,15 +185,7 @@ export default function HomeScreen() {
             <Text style={styles.toggleBtnIcon}>{isMonitoring ? '⏹' : '▶'}</Text>
           </>
         )}
-      </TouchableOpacity>
-
-      {/* Status */}
-      <View style={[styles.statusBadge, isMonitoring ? styles.statusActive : styles.statusInactive]}>
-        <View style={[styles.statusDot, isMonitoring ? styles.dotActive : styles.dotInactive]} />
-        <Text style={[styles.statusText, isMonitoring ? styles.statusTextActive : styles.statusTextInactive]}>
-          {isMonitoring ? 'Active — Monitoring for potholes' : 'Inactive'}
-        </Text>
-      </View>
+      </TouchableOpacity> */}
 
       {/* Stats */}
       <View style={styles.statsRow}>
@@ -220,15 +203,33 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Acceleration graph */}
-      {isMonitoring && (
-        <AccelerationGraph
-          samples={graphSamples}
-          detections={graphDetections}
-          downThreshold={V_SPIKE_DOWN_MS2}
-          upThreshold={V_SPIKE_UP_MS2}
-        />
-      )}
+      {/* Acceleration graph — always visible */}
+      <AccelerationGraph
+        samples={graphSamples}
+        detections={graphDetections}
+        downThreshold={V_SPIKE_DOWN_MS2}
+        upThreshold={V_SPIKE_UP_MS2}
+      />
+
+      {/* Road surface card */}
+      <View style={styles.surfaceCard}>
+        <Text style={styles.surfaceLabel}>Road Surface</Text>
+        {currentSurface ? (
+          <View style={styles.surfaceRow}>
+            <Text style={styles.surfaceType}>
+              {currentSurface.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+            </Text>
+            <View style={styles.surfaceConfBg}>
+              <View style={[styles.surfaceConfFill, { width: `${currentSurface.confidence}%` }]} />
+            </View>
+            <Text style={styles.surfaceConf}>{currentSurface.confidence}%</Text>
+          </View>
+        ) : (
+          <Text style={styles.surfaceWaiting}>
+            {isMonitoring ? 'Classifying…' : 'Waiting for data'}
+          </Text>
+        )}
+      </View>
 
       {/* Last detection pill */}
       {lastDetection && (
@@ -258,8 +259,8 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Description */}
-      <View style={styles.infoCard}>
+      {/* Description — hidden for clean demo */}
+      {/* <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>How it works</Text>
         <Text style={styles.infoText}>
           When active, the app uses your phone's accelerometer to detect sudden vertical impacts — the signature of a pothole.
@@ -270,7 +271,7 @@ export default function HomeScreen() {
         <Text style={styles.infoText}>
           As you drive, the app checks for known potholes ahead and plays an audio alert when you're within the warning distance.
         </Text>
-      </View>
+      </View> */}
     </ScrollView>
   );
 }
@@ -427,6 +428,55 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 11,
     fontWeight: '500',
+  },
+  surfaceCard: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+  },
+  surfaceLabel: {
+    color: '#666',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  surfaceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  surfaceType: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '700',
+    flex: 1,
+  },
+  surfaceConfBg: {
+    width: 60,
+    height: 4,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  surfaceConfFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 2,
+  },
+  surfaceConf: {
+    color: '#555',
+    fontSize: 12,
+    width: 32,
+    textAlign: 'right',
+  },
+  surfaceWaiting: {
+    color: '#444',
+    fontSize: 13,
+    fontStyle: 'italic',
   },
   infoCard: {
     backgroundColor: '#1A1A1A',

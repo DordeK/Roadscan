@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SETTINGS_KEY = '@pothole_tracker/settings';
-const FALLBACK_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const FALLBACK_URL = process.env.EXPO_PUBLIC_API_URL || 'https://roadscan-production.up.railway.app';
 
 /**
  * Reads the API base URL from AsyncStorage settings.
@@ -100,4 +100,17 @@ export async function logSurface(deviceUuid, lat, lng, vertAccelWindow) {
     vertAccelWindow,
   }, { timeout: 5000 });
   return response.data?.data ?? response.data;
+}
+
+/**
+ * Fetch surface readings for a bounding box.
+ * GET /api/surface/area?minLng=&minLat=&maxLng=&maxLat=
+ */
+export async function getSurfaceArea(minLng, minLat, maxLng, maxLat) {
+  const client = await getClient();
+  const response = await client.get('/api/surface/area', {
+    params: { minLng, minLat, maxLng, maxLat },
+  });
+  const data = response.data?.data ?? response.data;
+  return Array.isArray(data) ? data : [];
 }

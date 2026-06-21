@@ -87,6 +87,7 @@ router.get('/area', async (req, res, next) => {
     const result = await pool.query(
       `SELECT
          id,
+         device_uuid,
          surface_type,
          confidence,
          recorded_at,
@@ -94,7 +95,7 @@ router.get('/area', async (req, res, next) => {
          ST_Y(location::geometry) AS lat
        FROM road_surface
        WHERE location && ST_MakeEnvelope($1, $2, $3, $4, 4326)
-       ORDER BY recorded_at DESC
+       ORDER BY device_uuid, recorded_at ASC
        LIMIT 5000`,
       [minLng, minLat, maxLng, maxLat]
     );

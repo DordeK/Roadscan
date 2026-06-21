@@ -12,19 +12,62 @@ const SURFACE_COLORS = {
   gravel:         '#F44336',
 }
 
+// Max coordinate gap (degrees) before a new line segment is started.
+// ~0.005° ≈ 500m — bigger gap means the device stopped/teleported.
+const MAX_GAP_DEG = 0.005
+
 function buildSurfaceGeoJSON(segments) {
-  return {
-    type: 'FeatureCollection',
-    features: segments.map((s) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [parseFloat(s.lng), parseFloat(s.lat)] },
-      properties: {
-        surface_type: s.surface_type,
-        confidence:   s.confidence,
-        color: SURFACE_COLORS[s.surface_type] ?? '#888888',
-      },
-    })),
+  // Group by device_uuid (points already ordered by device + time from backend)
+  const byDevice = {}
+  for (const s of segments) {
+    const key = s.device_uuid ?? 'unknown'
+    if (!byDevice[key]) byDevice[key] = []
+    byDevice[key].push(s)
   }
+
+  const features = []
+
+  for (const points of Object.values(byDevice)) {
+    // Walk points: start a new line segment when surface changes or there's a big gap
+    let segCoords = []
+    let segSurface = null
+
+    const flush = () => {
+      if (segCoords.length >= 2) {
+        features.push({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: segCoords },
+          properties: {
+            surface_type: segSurface,
+            color: SURFACE_COLORS[segSurface] ?? '#888888',
+          },
+        })
+      }
+    }
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i]
+      const lng = parseFloat(p.lng)
+      const lat = parseFloat(p.lat)
+
+      const gapTooLarge = segCoords.length > 0 && (
+        Math.abs(lng - segCoords[segCoords.length - 1][0]) > MAX_GAP_DEG ||
+        Math.abs(lat - segCoords[segCoords.length - 1][1]) > MAX_GAP_DEG
+      )
+
+      if (p.surface_type !== segSurface || gapTooLarge) {
+        flush()
+        // Carry last point into new segment so lines connect visually
+        segCoords = segCoords.length > 0 ? [segCoords[segCoords.length - 1], [lng, lat]] : [[lng, lat]]
+        segSurface = p.surface_type
+      } else {
+        segCoords.push([lng, lat])
+      }
+    }
+    flush()
+  }
+
+  return { type: 'FeatureCollection', features }
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -156,13 +199,13 @@ export default function Map({ potholes, flyToRef }) {
         {showSurface && segments.length > 0 && (
           <Source id="surface" type="geojson" data={surfaceGeoJSON}>
             <Layer
-              id="surface-circles"
-              type="circle"
+              id="surface-lines"
+              type="line"
+              layout={{ 'line-join': 'round', 'line-cap': 'round' }}
               paint={{
-                'circle-radius': 7,
-                'circle-color': ['get', 'color'],
-                'circle-opacity': 0.6,
-                'circle-stroke-width': 0,
+                'line-color': ['get', 'color'],
+                'line-width': 5,
+                'line-opacity': 0.75,
               }}
             />
           </Source>

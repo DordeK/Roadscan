@@ -3,10 +3,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View } from 'react-native';
 
 import HomeScreen from '../screens/HomeScreen';
-import HistoryScreen from '../screens/HistoryScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+// import HistoryScreen from '../screens/HistoryScreen';
+// import SettingsScreen from '../screens/SettingsScreen';
 import RouteScreen from '../screens/RouteScreen';
-import RecordScreen from '../screens/RecordScreen';
+// import RecordScreen from '../screens/RecordScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -44,13 +44,24 @@ export default function AppNavigator() {
         component={HomeScreen}
         options={{
           title: 'Home',
-          headerTitle: 'Pothole Tracker',
+          headerTitle: 'Breakpoint',
           tabBarIcon: ({ focused, color }) => (
             <TabIcon symbol="🚗" focused={focused} color={color} />
           ),
         }}
       />
       <Tab.Screen
+        name="Route"
+        component={RouteScreen}
+        options={{
+          title: 'Map',
+          headerTitle: 'Road Map',
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon symbol="🗺" focused={focused} color={color} />
+          ),
+        }}
+      />
+      {/* <Tab.Screen
         name="History"
         component={HistoryScreen}
         options={{
@@ -60,8 +71,8 @@ export default function AppNavigator() {
             <TabIcon symbol="📋" focused={focused} color={color} />
           ),
         }}
-      />
-      <Tab.Screen
+      /> */}
+      {/* <Tab.Screen
         name="Settings"
         component={SettingsScreen}
         options={{
@@ -71,19 +82,8 @@ export default function AppNavigator() {
             <TabIcon symbol="⚙️" focused={focused} color={color} />
           ),
         }}
-      />
-      <Tab.Screen
-        name="Route"
-        component={RouteScreen}
-        options={{
-          title: 'Route',
-          headerTitle: 'Route Planner',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon symbol="🗺" focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
+      /> */}
+      {/* <Tab.Screen
         name="Record"
         component={RecordScreen}
         options={{
@@ -93,7 +93,7 @@ export default function AppNavigator() {
             <TabIcon symbol="⏺" focused={focused} color={color} />
           ),
         }}
-      />
+      /> */}
     </Tab.Navigator>
   );
 }

@@ -14,15 +14,17 @@ import { getCurrentLocation } from './location';
 const WINDOW_SAMPLES = 40;   // 2s at 20Hz — must match surface_model.json
 const POST_EVERY_N   = 40;   // post once per full window
 
-let buffer        = [];
+let buffer           = [];
 let samplesSincePost = 0;
-let deviceUuid    = null;
-let running       = false;
+let deviceUuid       = null;
+let running          = false;
+let onSurfaceCb      = null;
 
-export function startSurfaceLogging(uuid) {
+export function startSurfaceLogging(uuid, onSurface) {
   buffer = [];
   samplesSincePost = 0;
   deviceUuid = uuid;
+  onSurfaceCb = onSurface ?? null;
   running = true;
 }
 
@@ -30,6 +32,7 @@ export function stopSurfaceLogging() {
   running = false;
   buffer = [];
   samplesSincePost = 0;
+  onSurfaceCb = null;
 }
 
 export async function pushSurfaceSample(vertAccel) {
@@ -42,15 +45,16 @@ export async function pushSurfaceSample(vertAccel) {
   if (samplesSincePost < POST_EVERY_N || buffer.length < WINDOW_SAMPLES) return;
   samplesSincePost = 0;
 
-  // Snapshot the current window before the async gap
   const window = [...buffer];
 
   try {
     const loc = await getCurrentLocation();
     if (!loc) return;
-    await logSurface(deviceUuid, loc.latitude, loc.longitude, window);
+    const result = await logSurface(deviceUuid, loc.latitude, loc.longitude, window);
+    if (onSurfaceCb && result?.surface_type) {
+      onSurfaceCb({ surfaceType: result.surface_type, confidence: result.confidence });
+    }
   } catch (err) {
-    // Non-critical — surface logging failures are silent
     console.warn('[surfaceLogger] post failed:', err.message);
   }
 }
