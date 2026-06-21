@@ -1,0 +1,43 @@
+{
+  "best_model": "RandomForest",
+  "f1": 0.3583,
+  "auc": 0.806,
+  "window_samples": 20,
+  "feature_names": [
+    "va_mean",
+    "va_std",
+    "va_min",
+    "va_max",
+    "va_range",
+    "dv_mean",
+    "dv_std",
+    "dv_min",
+    "dv_max",
+    "dv_range",
+    "spike_score",
+    "down_up_ratio",
+    "down_cross",
+    "up_cross",
+    "ax_std",
+    "ay_std",
+    "az_std",
+    "rms_va",
+    "rms_dv",
+    "cur_va",
+    "cur_dv"
+  ],
+  "test_sessions": [
+    "bad_road",
+    "city_smooth"
+  ],
+  "train_sessions": [
+    "city_rough",
+    "country_road",
+    "highway",
+    "parking_lot"
+  ],
+  "n_train": 18000,
+  "n_test": 8400,
+  "positive_rate_train": 0.0406,
+  "positive_rate_test": 0.0708
+}

@@ -76,3 +76,38 @@ export async function clearLocalHistory() {
     console.error('[storage] clearLocalHistory error:', err);
   }
 }
+
+const RECORDING_SESSIONS_KEY = '@pothole_tracker/recording_sessions';
+const MAX_STORED_SESSIONS = 10;
+
+export async function getRecordingSessions() {
+  try {
+    const raw = await AsyncStorage.getItem(RECORDING_SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error('[storage] getRecordingSessions error:', err);
+    return [];
+  }
+}
+
+export async function saveRecordingSession(session) {
+  try {
+    const sessions = await getRecordingSessions();
+    const updated = [session, ...sessions].slice(0, MAX_STORED_SESSIONS);
+    await AsyncStorage.setItem(RECORDING_SESSIONS_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error('[storage] saveRecordingSession error:', err);
+    throw err;
+  }
+}
+
+export async function deleteRecordingSession(id) {
+  try {
+    const sessions = await getRecordingSessions();
+    const updated = sessions.filter((s) => s.id !== id);
+    await AsyncStorage.setItem(RECORDING_SESSIONS_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error('[storage] deleteRecordingSession error:', err);
+    throw err;
+  }
+}

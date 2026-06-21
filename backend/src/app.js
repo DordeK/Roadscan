@@ -6,6 +6,8 @@ const express = require('express');
 const cors = require('cors');
 
 const potholeRoutes = require('./routes/potholes');
+const predictRoutes = require('./routes/predict');
+const surfaceRoutes = require('./routes/surface');
 const { registerDecayJob } = require('./jobs/decay');
 const { pool } = require('./db');
 
@@ -34,6 +36,8 @@ app.get('/health', async (_req, res) => {
 });
 
 app.use('/api/potholes', potholeRoutes);
+app.use('/api/predict', predictRoutes);
+app.use('/api/surface', surfaceRoutes);
 
 // 404 fallback
 app.use((_req, res) => {

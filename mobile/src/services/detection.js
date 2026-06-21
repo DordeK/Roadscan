@@ -5,8 +5,6 @@ import {
   MOTION_THRESHOLD_MS2,
   MIN_CONSECUTIVE_MOTION,
   MOTION_WINDOW_MS,
-  V_SPIKE_DOWN_MS2,
-  V_SPIKE_UP_MS2,
   SEVERITY_THRESHOLDS,
   DETECTION_COOLDOWN_MS,
 } from '../constants/detection';
@@ -34,6 +32,16 @@ let lastDetectionTime = 0;
 // Speed shared by the location service
 let currentSpeedKmh = 0;
 
+// ─── ML inference state ───────────────────────────────────────────────────────
+const ML_WINDOW_SIZE = 20;       // samples fed to the model (1 s at 20 Hz)
+const ML_GATE_DELTA = 0.5;       // m/s² — only run ML when there is notable jerk
+const ML_CHECK_INTERVAL_MS = 500; // minimum ms between consecutive ML requests
+
+let mlWindow = [];               // rolling buffer of last ML_WINDOW_SIZE samples
+let mlCheckPending = false;      // true while an async ML request is in-flight
+let lastMLCheckTime = 0;         // timestamp of most recent ML request
+let mlPredictFn = null;          // injected via startDetection({ mlPredict })
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function dot(a, b) {
@@ -60,15 +68,19 @@ export function getCurrentSpeed() {
   return currentSpeedKmh;
 }
 
-export function startDetection({ sensitivity = 'normal', onDetect, onData }) {
+export function startDetection({ sensitivity = 'normal', onDetect, onData, mlPredict }) {
   if (subscription) {
     console.warn('[detection] Already subscribed — call stopDetection first');
     return;
   }
 
-  const sensitivityMultiplier = sensitivity === 'high' ? 0.8 : sensitivity === 'low' ? 1.2 : 1.0;
-  const downThreshold = V_SPIKE_DOWN_MS2 * sensitivityMultiplier;
-  const upThreshold = V_SPIKE_UP_MS2 * sensitivityMultiplier;
+  // sensitivityMultiplier kept for reference — used by threshold algo (commented out below)
+  const sensitivityMultiplier = sensitivity === 'high' ? 0.8 : sensitivity === 'low' ? 1.2 : 1.0; // eslint-disable-line no-unused-vars
+
+  mlPredictFn = typeof mlPredict === 'function' ? mlPredict : null;
+  mlWindow = [];
+  mlCheckPending = false;
+  lastMLCheckTime = 0;
 
   Accelerometer.setUpdateInterval(ACCELEROMETER_SAMPLE_RATE_MS);
 
@@ -109,33 +121,68 @@ export function startDetection({ sensitivity = 'normal', onDetect, onData }) {
       isMoving = false;
     }
 
-    // ── 4. V-spike detection ────────────────────────────────────────────────
+    // ── 4. Detection ────────────────────────────────────────────────────────
     if (prevVertAccel !== null) {
       const delta = vertAccel - prevVertAccel;
 
       if (typeof onData === 'function') {
-        onData({ vertAccel, delta, isMoving });
+        onData({ vertAccel, delta, isMoving, ax_g: x, ay_g: y, az_g: z });
       }
 
+      // ── 4a. ML-based detection (primary) ──────────────────────────────────
+      // Maintain a rolling window of the last ML_WINDOW_SIZE samples.
+      mlWindow.push({ ax_g: x, ay_g: y, az_g: z, vert_accel_ms2: vertAccel, delta_ms2: delta });
+      if (mlWindow.length > ML_WINDOW_SIZE) mlWindow.shift();
+
+      // Fire an async ML check when there is notable jerk, the phone is moving,
+      // we have a full window, and we are not already waiting for a response.
       if (
+        mlPredictFn &&
         isMoving &&
-        prevDelta !== null &&
-        prevDelta < -downThreshold &&  // downward spike
-        delta > upThreshold &&          // followed by upward spike
-        now - lastDetectionTime > DETECTION_COOLDOWN_MS
+        mlWindow.length === ML_WINDOW_SIZE &&
+        !mlCheckPending &&
+        Math.abs(delta) > ML_GATE_DELTA &&
+        now - lastDetectionTime > DETECTION_COOLDOWN_MS &&
+        now - lastMLCheckTime > ML_CHECK_INTERVAL_MS
       ) {
-        lastDetectionTime = now;
+        mlCheckPending = true;
+        lastMLCheckTime = now;
+        const windowSnapshot = [...mlWindow];
 
-        const spikeMag = Math.max(Math.abs(prevDelta), Math.abs(delta));
-        const severity = classifySeverity(spikeMag);
-        const gForce = parseFloat((spikeMag / 9.81).toFixed(3));
-
-        console.log(`[detection] POTHOLE! severity=${severity} spikeMag=${spikeMag.toFixed(2)}m/s² gForce=${gForce}G`);
-
-        if (typeof onDetect === 'function') {
-          onDetect({ severity, gForce });
-        }
+        mlPredictFn(windowSnapshot)
+          .then(({ is_pothole, probability }) => {
+            if (is_pothole && Date.now() - lastDetectionTime > DETECTION_COOLDOWN_MS) {
+              lastDetectionTime = Date.now();
+              const spikeMag = Math.max(...windowSnapshot.map((s) => Math.abs(s.delta_ms2)));
+              const severity = classifySeverity(spikeMag);
+              const gForce = parseFloat((spikeMag / 9.81).toFixed(3));
+              console.log(`[detection] ML POTHOLE! prob=${probability.toFixed(3)} severity=${severity} gForce=${gForce}G`);
+              if (typeof onDetect === 'function') {
+                onDetect({ severity, gForce });
+              }
+            } else {
+              console.log(`[detection] ML pass — prob=${probability.toFixed(3)}`);
+            }
+          })
+          .catch((err) => console.warn('[detection] ML check failed:', err.message))
+          .finally(() => { mlCheckPending = false; });
       }
+
+      // ── 4b. V-spike threshold detection (commented out — kept for reference) ──
+      // if (
+      //   isMoving &&
+      //   prevDelta !== null &&
+      //   prevDelta < -downThreshold &&   // downward spike
+      //   delta > upThreshold &&           // followed by upward spike
+      //   now - lastDetectionTime > DETECTION_COOLDOWN_MS
+      // ) {
+      //   lastDetectionTime = now;
+      //   const spikeMag = Math.max(Math.abs(prevDelta), Math.abs(delta));
+      //   const severity = classifySeverity(spikeMag);
+      //   const gForce = parseFloat((spikeMag / 9.81).toFixed(3));
+      //   console.log(`[detection] V-SPIKE! severity=${severity} spikeMag=${spikeMag.toFixed(2)}m/s²`);
+      //   if (typeof onDetect === 'function') onDetect({ severity, gForce });
+      // }
 
       prevDelta = delta;
     }
@@ -155,6 +202,10 @@ export function stopDetection() {
   isMoving = false;
   lastDetectionTime = 0;
   gravity = { x: 0, y: 0, z: -9.81 };
+  mlWindow = [];
+  mlCheckPending = false;
+  lastMLCheckTime = 0;
+  mlPredictFn = null;
 }
 
 export function isDetecting() {

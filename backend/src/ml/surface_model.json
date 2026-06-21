@@ -1,0 +1,104 @@
+{
+  "version": 2,
+  "trained_at": "2026-06-21",
+  "window_samples": 40,
+  "features": [
+    "roughness",
+    "mean_abs",
+    "max_abs",
+    "mean_delta",
+    "hf_rate"
+  ],
+  "class_stats": {
+    "smooth_asphalt": {
+      "mean_roughness": 0.8986,
+      "mean_hf_rate": 0.4438
+    },
+    "rough_asphalt": {
+      "mean_roughness": 1.9752,
+      "mean_hf_rate": 0.7192
+    },
+    "cobblestone": {
+      "mean_roughness": 1.8858,
+      "mean_hf_rate": 0.6317
+    },
+    "gravel": {
+      "mean_roughness": 3.5196,
+      "mean_hf_rate": 0.8427
+    }
+  },
+  "tree": {
+    "feature": "roughness",
+    "threshold": 1.183805,
+    "left": {
+      "feature": "roughness",
+      "threshold": 1.080831,
+      "left": {
+        "feature": "roughness",
+        "threshold": 1.029659,
+        "left": {
+          "label": "smooth_asphalt"
+        },
+        "right": {
+          "label": "smooth_asphalt"
+        }
+      },
+      "right": {
+        "label": "smooth_asphalt"
+      }
+    },
+    "right": {
+      "feature": "roughness",
+      "threshold": 2.925095,
+      "left": {
+        "feature": "mean_delta",
+        "threshold": 1.706371,
+        "left": {
+          "feature": "mean_abs",
+          "threshold": 1.261486,
+          "left": {
+            "label": "rough_asphalt"
+          },
+          "right": {
+            "label": "cobblestone"
+          }
+        },
+        "right": {
+          "feature": "mean_delta",
+          "threshold": 1.954847,
+          "left": {
+            "label": "rough_asphalt"
+          },
+          "right": {
+            "label": "rough_asphalt"
+          }
+        }
+      },
+      "right": {
+        "feature": "mean_abs",
+        "threshold": 2.654746,
+        "left": {
+          "feature": "max_abs",
+          "threshold": 9.09655,
+          "left": {
+            "label": "gravel"
+          },
+          "right": {
+            "label": "rough_asphalt"
+          }
+        },
+        "right": {
+          "feature": "roughness",
+          "threshold": 3.947079,
+          "left": {
+            "label": "gravel"
+          },
+          "right": {
+            "label": "gravel"
+          }
+        }
+      }
+    }
+  },
+  "use_tree": true
+}

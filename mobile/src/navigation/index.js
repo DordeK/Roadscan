@@ -6,6 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import RouteScreen from '../screens/RouteScreen';
+import RecordScreen from '../screens/RecordScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -79,6 +80,17 @@ export default function AppNavigator() {
           headerTitle: 'Route Planner',
           tabBarIcon: ({ focused, color }) => (
             <TabIcon symbol="🗺" focused={focused} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Record"
+        component={RecordScreen}
+        options={{
+          title: 'Record',
+          headerTitle: 'Training Recorder',
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon symbol="⏺" focused={focused} color={color} />
           ),
         }}
       />

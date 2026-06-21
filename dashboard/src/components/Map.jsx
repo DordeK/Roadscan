@@ -1,8 +1,31 @@
-import React, { useState, useRef, useCallback } from 'react'
-import ReactMapGL, { Marker, Popup, NavigationControl } from 'react-map-gl'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
+import ReactMapGL, { Marker, Popup, NavigationControl, Source, Layer } from 'react-map-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import PotholePin from './PotholePin'
 import Tooltip from './Tooltip'
+import { useSurface } from '../hooks/useSurface'
+
+const SURFACE_COLORS = {
+  smooth_asphalt: '#4CAF50',
+  rough_asphalt:  '#FF9800',
+  cobblestone:    '#FF5722',
+  gravel:         '#F44336',
+}
+
+function buildSurfaceGeoJSON(segments) {
+  return {
+    type: 'FeatureCollection',
+    features: segments.map((s) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [parseFloat(s.lng), parseFloat(s.lat)] },
+      properties: {
+        surface_type: s.surface_type,
+        confidence:   s.confidence,
+        color: SURFACE_COLORS[s.surface_type] ?? '#888888',
+      },
+    })),
+  }
+}
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
@@ -45,7 +68,28 @@ export default function Map({ potholes, flyToRef }) {
   const [hoveredPothole, setHoveredPothole] = useState(null)
   const [selectedPothole, setSelectedPothole] = useState(null)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [showSurface, setShowSurface] = useState(true)
+  const [bounds, setBounds] = useState(null)
   const mapRef = useRef(null)
+
+  const { segments } = useSurface(bounds)
+  const surfaceGeoJSON = buildSurfaceGeoJSON(segments)
+
+  // Update bounds when view changes so useSurface re-fetches for the new area
+  const handleMove = useCallback((e) => {
+    setViewState(e.viewState)
+    if (mapRef.current) {
+      const b = mapRef.current.getBounds()
+      if (b) {
+        setBounds({
+          minLng: b.getWest(),
+          minLat: b.getSouth(),
+          maxLng: b.getEast(),
+          maxLat: b.getNorth(),
+        })
+      }
+    }
+  }, [])
 
   // Expose flyTo so parent/DangerPanel can trigger it
   if (flyToRef) {
@@ -100,13 +144,29 @@ export default function Map({ potholes, flyToRef }) {
       <ReactMapGL
         ref={mapRef}
         {...viewState}
-        onMove={(e) => setViewState(e.viewState)}
+        onMove={handleMove}
         mapboxAccessToken={MAPBOX_TOKEN}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         style={{ width: '100%', height: '100%' }}
         onClick={() => setSelectedPothole(null)}
       >
         <NavigationControl position="top-left" />
+
+        {/* Surface condition layer */}
+        {showSurface && segments.length > 0 && (
+          <Source id="surface" type="geojson" data={surfaceGeoJSON}>
+            <Layer
+              id="surface-circles"
+              type="circle"
+              paint={{
+                'circle-radius': 7,
+                'circle-color': ['get', 'color'],
+                'circle-opacity': 0.6,
+                'circle-stroke-width': 0,
+              }}
+            />
+          </Source>
+        )}
 
         {potholes.map((pothole) => {
           const { lng, lat } = getLngLat(pothole)
@@ -160,6 +220,50 @@ export default function Map({ potholes, flyToRef }) {
           <Tooltip pothole={hoveredPothole} />
         </div>
       )}
+
+      {/* Surface legend + toggle */}
+      <div style={{
+        position: 'absolute',
+        bottom: 24,
+        left: 12,
+        background: 'rgba(15,15,15,0.88)',
+        border: '1px solid #2A2A2A',
+        borderRadius: 10,
+        padding: '10px 14px',
+        zIndex: 15,
+        minWidth: 180,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ color: '#AAA', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            Road Surface
+          </span>
+          <button
+            onClick={() => setShowSurface((v) => !v)}
+            style={{
+              background: showSurface ? '#1A3A1A' : '#2A2A2A',
+              border: `1px solid ${showSurface ? '#4CAF50' : '#444'}`,
+              borderRadius: 4,
+              color: showSurface ? '#4CAF50' : '#666',
+              fontSize: 10,
+              padding: '2px 7px',
+              cursor: 'pointer',
+            }}
+          >
+            {showSurface ? 'ON' : 'OFF'}
+          </button>
+        </div>
+        {Object.entries(SURFACE_COLORS).map(([type, color]) => (
+          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, opacity: 0.85, flexShrink: 0 }} />
+            <span style={{ color: '#888', fontSize: 11 }}>
+              {type.replace(/_/g, ' ')}
+            </span>
+          </div>
+        ))}
+        {segments.length === 0 && (
+          <div style={{ color: '#444', fontSize: 10, marginTop: 6 }}>No data — start monitoring</div>
+        )}
+      </div>
     </div>
   )
 }

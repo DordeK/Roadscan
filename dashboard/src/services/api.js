@@ -29,3 +29,14 @@ export async function getStats() {
   const { data } = await client.get('/api/potholes/stats')
   return data
 }
+
+/**
+ * Fetch road surface readings for a bounding box.
+ * GET /api/surface/area?minLng=&minLat=&maxLng=&maxLat=
+ */
+export async function getSurfaceArea(minLng, minLat, maxLng, maxLat) {
+  const { data } = await client.get('/api/surface/area', {
+    params: { minLng, minLat, maxLng, maxLat },
+  })
+  return Array.isArray(data) ? data : (data?.data ?? [])
+}

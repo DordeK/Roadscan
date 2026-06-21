@@ -72,3 +72,32 @@ export async function getDeviceHistory(deviceUuid) {
   const response = await client.get(`/api/potholes/device/${deviceUuid}`);
   return response.data; // expected: array of pothole objects
 }
+
+/**
+ * Send a 20-sample accelerometer window to the ML inference endpoint.
+ * Each sample: { ax_g, ay_g, az_g, vert_accel_ms2, delta_ms2 }
+ *
+ * Returns { is_pothole: bool, probability: float, confidence: string }
+ *
+ * POST /api/predict
+ */
+export async function mlPredict(samples) {
+  const client = await getClient();
+  const response = await client.post('/api/predict', { samples }, { timeout: 3000 });
+  return response.data?.data ?? response.data;
+}
+
+/**
+ * POST /api/surface
+ * Sends a 40-sample vertAccel window with GPS coords for surface classification.
+ */
+export async function logSurface(deviceUuid, lat, lng, vertAccelWindow) {
+  const client = await getClient();
+  const response = await client.post('/api/surface', {
+    deviceUuid,
+    lat,
+    lng,
+    vertAccelWindow,
+  }, { timeout: 5000 });
+  return response.data?.data ?? response.data;
+}

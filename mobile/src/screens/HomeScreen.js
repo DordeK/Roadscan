@@ -13,8 +13,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { startDetection, stopDetection } from '../services/detection';
 import { startLocationTracking, stopLocationTracking, getCurrentLocation } from '../services/location';
 import { loadAlertSound, unloadAlertSound } from '../services/audio';
-import { logPothole } from '../services/api';
+import { logPothole, mlPredict } from '../services/api';
 import { getDeviceUuid, getSettings } from '../services/storage';
+import { startSurfaceLogging, stopSurfaceLogging, pushSurfaceSample } from '../services/surfaceLogger';
 import AccelerationGraph from '../components/AccelerationGraph';
 import { V_SPIKE_DOWN_MS2, V_SPIKE_UP_MS2 } from '../constants/detection';
 
@@ -26,6 +27,7 @@ export default function HomeScreen() {
   const [settings, setSettings] = useState(null);
   const [todayCount, setTodayCount] = useState(0);
   const [lastDetection, setLastDetection] = useState(null);
+  const [mlResult, setMlResult] = useState(null);
   const [graphSamples, setGraphSamples] = useState([]);
   const [graphDetections, setGraphDetections] = useState([]);
   const graphSamplesRef = useRef([]);
@@ -70,9 +72,11 @@ export default function HomeScreen() {
   const handleToggleMonitoring = async () => {
     if (isMonitoring) {
       stopDetection();
+      stopSurfaceLogging();
       await stopLocationTracking();
       await unloadAlertSound();
       setIsMonitoring(false);
+      setMlResult(null);
       return;
     }
 
@@ -97,10 +101,12 @@ export default function HomeScreen() {
       const currentSettings = await getSettings();
       startDetection({
         sensitivity: currentSettings.sensitivity ?? 'normal',
-        onData: ({ vertAccel, delta, isMoving }) => {
-          const next = [...graphSamplesRef.current, { vertAccel, delta, isMoving }].slice(-MAX_GRAPH_SAMPLES);
+        mlPredict,
+        onData: ({ vertAccel, delta, isMoving, ax_g, ay_g, az_g }) => {
+          const next = [...graphSamplesRef.current, { vertAccel, delta, isMoving, ax_g, ay_g, az_g }].slice(-MAX_GRAPH_SAMPLES);
           graphSamplesRef.current = next;
           setGraphSamples([...next]);
+          pushSurfaceSample(vertAccel);
         },
         onDetect: async ({ severity, gForce }) => {
           // Mark detection at current sample position
@@ -109,7 +115,22 @@ export default function HomeScreen() {
           graphDetectionsRef.current = nextDet;
           setGraphDetections([...nextDet]);
           setLastDetection({ severity, gForce, time: new Date() });
+          setMlResult(null); // clear previous while new one loads
           setTodayCount((c) => c + 1);
+
+          // Run ML prediction on the window of samples around this detection
+          const window = graphSamplesRef.current.slice(-20).map((s) => ({
+            vert_accel_ms2: s.vertAccel,
+            delta_ms2:      s.delta,
+            ax_g:           s.ax_g ?? 0,
+            ay_g:           s.ay_g ?? 0,
+            az_g:           s.az_g ?? -1,
+          }));
+          if (window.length >= 20) {
+            mlPredict(window)
+              .then((r) => setMlResult(r))
+              .catch((err) => console.warn('[HomeScreen] mlPredict failed:', err.message));
+          }
 
           try {
             const loc = await getCurrentLocation();
@@ -137,6 +158,7 @@ export default function HomeScreen() {
         },
       });
 
+      startSurfaceLogging(deviceUuidRef.current);
       setIsMonitoring(true);
     } catch (err) {
       console.error('[home] Start monitoring failed:', err.message, err.stack);
@@ -218,6 +240,21 @@ export default function HomeScreen() {
           <Text style={styles.lastDetectionTime}>
             {lastDetection.time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </Text>
+
+          {/* ML confidence badge */}
+          {mlResult ? (
+            <View style={[styles.mlBadge, { backgroundColor: mlResult.is_pothole ? '#0D2A10' : '#2A1A0D' }]}>
+              <View style={[styles.mlDot, { backgroundColor: mlResult.is_pothole ? '#4CAF50' : '#FF9800' }]} />
+              <Text style={[styles.mlBadgeText, { color: mlResult.is_pothole ? '#4CAF50' : '#FF9800' }]}>
+                ML: {mlResult.is_pothole ? 'Confirmed' : 'Uncertain'} · {(mlResult.probability * 100).toFixed(0)}% · {mlResult.confidence}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.mlBadge}>
+              <ActivityIndicator size="small" color="#444" style={{ marginRight: 6 }} />
+              <Text style={styles.mlBadgeText}>ML analysis…</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -369,6 +406,27 @@ const styles = StyleSheet.create({
   lastDetectionTime: {
     color: '#555',
     fontSize: 12,
+  },
+  mlBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    backgroundColor: '#1E1E1E',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  mlDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  mlBadgeText: {
+    color: '#666',
+    fontSize: 11,
+    fontWeight: '500',
   },
   infoCard: {
     backgroundColor: '#1A1A1A',
