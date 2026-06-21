@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Pothole Tracker",
-    "slug": "pothole-tracker",
+    "name": "Breakpoint",
+    "slug": "breakpoint-roadscan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,17 +16,20 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.megathon.potholetracker",
+      "bundleIdentifier": "com.megathon.breakpoint",
       "infoPlist": {
         "UIBackgroundModes": [
           "location",
           "audio",
+          "fetch",
+          "location",
+          "audio",
           "fetch"
         ],
-        "NSLocationWhenInUseUsageDescription": "Pothole Tracker needs your location to detect potholes and warn you of upcoming hazards.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Pothole Tracker needs background location access to monitor for potholes while you drive.",
-        "NSLocationAlwaysUsageDescription": "Pothole Tracker needs background location access to monitor for potholes while you drive.",
-        "NSMotionUsageDescription": "Pothole Tracker uses the accelerometer to detect road potholes."
+        "NSLocationWhenInUseUsageDescription": "Breakpoint needs your location to detect potholes and warn you of upcoming hazards.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Breakpoint needs background location access to monitor road conditions while you drive.",
+        "NSLocationAlwaysUsageDescription": "Breakpoint needs background location access to monitor road conditions while you drive.",
+        "NSMotionUsageDescription": "Breakpoint uses the accelerometer to detect road potholes and surface conditions."
       }
     },
     "android": {
@@ -34,13 +37,30 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F0F0F"
       },
-      "package": "com.megathon.potholetracker",
+      "package": "com.megathon.breakpoint",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -50,9 +70,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Pothole Tracker needs background location access to monitor for potholes while you drive.",
-          "locationAlwaysPermission": "Pothole Tracker needs background location access to monitor for potholes while you drive.",
-          "locationWhenInUsePermission": "Pothole Tracker needs your location to detect and warn about potholes.",
+          "locationAlwaysAndWhenInUsePermission": "Breakpoint needs background location access to monitor road conditions while you drive.",
+          "locationAlwaysPermission": "Breakpoint needs background location access to monitor road conditions while you drive.",
+          "locationWhenInUsePermission": "Breakpoint needs your location to detect and warn about potholes.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }
@@ -63,6 +83,25 @@
           "microphonePermission": false
         }
       ],
-    ]
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#FF6B00"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8538fa9f-9cdd-4380-967d-83b0529b191e"
+      }
+    },
+    "owner": "dkremenovic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8538fa9f-9cdd-4380-967d-83b0529b191e"
+    }
   }
 }

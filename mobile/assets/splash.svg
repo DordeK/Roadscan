@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1284 2778" width="1284" height="2778">
+  <defs>
+    <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1C1C1C"/>
+      <stop offset="100%" stop-color="#2A2A2A"/>
+    </linearGradient>
+    <linearGradient id="greenLine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00E676" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#00E676" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00E676" stop-opacity="0.7"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="30" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1284" height="2778" fill="#0A0A0A"/>
+
+  <!-- Road occupies middle section of splash -->
+  <g transform="translate(0, 700)">
+    <!-- Road trapezoid -->
+    <polygon points="452,100 832,100 1100,980 184,980" fill="url(#roadGrad)"/>
+    <!-- Road edges -->
+    <line x1="452" y1="100" x2="184" y2="980" stroke="#323232" stroke-width="5"/>
+    <line x1="832" y1="100" x2="1100" y2="980" stroke="#323232" stroke-width="5"/>
+
+    <!-- Center dashes (perspective) -->
+    <line x1="642" y1="120" x2="642" y2="168" stroke="#4A4A4A" stroke-width="12" stroke-linecap="round"/>
+    <line x1="641" y1="205" x2="639" y2="268" stroke="#4A4A4A" stroke-width="16" stroke-linecap="round"/>
+    <line x1="638" y1="318" x2="635" y2="400" stroke="#4A4A4A" stroke-width="21" stroke-linecap="round"/>
+    <line x1="633" y1="460" x2="629" y2="570" stroke="#4A4A4A" stroke-width="27" stroke-linecap="round"/>
+    <line x1="627" y1="640" x2="622" y2="778" stroke="#4A4A4A" stroke-width="33" stroke-linecap="round"/>
+    <line x1="620" y1="855" x2="616" y2="960" stroke="#4A4A4A" stroke-width="38" stroke-linecap="round"/>
+
+    <!-- Sky behind road -->
+    <rect x="0" y="0" width="1284" height="108" fill="#0A0A0A"/>
+    <line x1="0" y1="100" x2="1284" y2="100" stroke="#1E1E1E" stroke-width="2"/>
+
+    <!-- Green clean-road line: glowing backdrop -->
+    <path d="M 642,108 C 642,220 641,340 639,470 C 637,610 633,730 629,840 C 626,900 622,950 618,990"
+          fill="none" stroke="#00E676" stroke-width="36" stroke-linecap="round" opacity="0.15"
+          filter="url(#softglow)"/>
+    <!-- Main green line -->
+    <path d="M 642,108 C 642,220 641,340 639,470 C 637,610 633,730 629,840 C 626,900 622,950 618,990"
+          fill="none" stroke="url(#greenLine)" stroke-width="13" stroke-linecap="round"
+          filter="url(#glow)"/>
+
+    <!-- Scan circle at horizon -->
+    <circle cx="642" cy="100" r="50" fill="none" stroke="#00E676" stroke-width="6" opacity="0.9" filter="url(#glow)"/>
+    <circle cx="642" cy="100" r="14" fill="#00E676" opacity="1" filter="url(#glow)"/>
+    <circle cx="642" cy="100" r="78" fill="none" stroke="#00E676" stroke-width="2" opacity="0.3"/>
+
+    <!-- Checkmark at road base -->
+    <polyline points="582,888 614,930 706,838"
+              fill="none" stroke="#00E676" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"
+              filter="url(#glow)"/>
+  </g>
+
+  <!-- App name -->
+  <text x="642" y="1920" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="110" font-weight="800" fill="#FFFFFF" text-anchor="middle" letter-spacing="8">BREAKPOINT</text>
+  <text x="642" y="1990" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="40" font-weight="400" fill="#00E676" text-anchor="middle" letter-spacing="6">ROAD INTELLIGENCE</text>
+</svg>

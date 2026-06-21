@@ -24,11 +24,28 @@ export async function getApiUrl() {
  */
 async function getClient() {
   const baseURL = await getApiUrl();
-  return axios.create({
+  console.log('[api] baseURL =', baseURL);
+  const instance = axios.create({
     baseURL,
     timeout: 8000,
     headers: { 'Content-Type': 'application/json' },
   });
+
+  instance.interceptors.response.use(
+    (res) => res,
+    (err) => {
+      if (err.response) {
+        console.warn('[api] HTTP error', err.config?.url, '→', err.response.status, JSON.stringify(err.response.data));
+      } else if (err.request) {
+        console.warn('[api] No response for', err.config?.url, '— network error:', err.message);
+      } else {
+        console.warn('[api] Request setup error:', err.message);
+      }
+      return Promise.reject(err);
+    }
+  );
+
+  return instance;
 }
 
 /**

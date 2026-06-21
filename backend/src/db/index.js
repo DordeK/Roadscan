@@ -2,12 +2,10 @@
 
 const { Pool } = require('pg');
 
-console.log('Connecting to database:', process.env.DATABASE_URL);
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
+  max: 5,                      // Railway PgBouncer session mode caps at 15 total
+  idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 5000,
 });
 

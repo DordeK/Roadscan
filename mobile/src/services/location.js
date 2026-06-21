@@ -5,6 +5,7 @@ import { setCurrentSpeed } from './detection';
 import { getNearbyPotholes } from './api';
 import { playAlert } from './audio';
 import { getSettings } from './storage';
+import { sendPotholeWarning } from './notifications';
 
 // ─── Haversine distance helper ────────────────────────────────────────────────
 function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -65,9 +66,8 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
         const lastAlert = recentAlerts.get(id) ?? 0;
         if (now - lastAlert > ALERT_COOLDOWN_MS) {
           recentAlerts.set(id, now);
-          if (soundEnabled) {
-            await playAlert();
-          }
+          if (soundEnabled) playAlert().catch(() => {});
+          sendPotholeWarning(dist).catch(() => {});
         }
       }
     }
@@ -128,7 +128,8 @@ async function handleLocationUpdate(location) {
         const lastAlert = recentAlerts.get(id) ?? 0;
         if (now - lastAlert > ALERT_COOLDOWN_MS) {
           recentAlerts.set(id, now);
-          if (soundEnabled) await playAlert();
+          if (soundEnabled) playAlert().catch(() => {});
+          sendPotholeWarning(dist).catch(() => {});
         }
       }
     }
