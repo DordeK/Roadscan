@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  // TouchableOpacity,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Alert,
@@ -15,11 +15,41 @@ import { startLocationTracking, stopLocationTracking, getCurrentLocation } from 
 import { loadAlertSound, unloadAlertSound } from '../services/audio';
 import { logPothole, mlPredict } from '../services/api';
 import { getDeviceUuid, getSettings } from '../services/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startSurfaceLogging, stopSurfaceLogging, pushSurfaceSample } from '../services/surfaceLogger';
+import { requestNotificationPermissions, scheduleDemoAlert } from '../services/notifications';
 import AccelerationGraph from '../components/AccelerationGraph';
 import { V_SPIKE_DOWN_MS2, V_SPIKE_UP_MS2 } from '../constants/detection';
 
 const MAX_GRAPH_SAMPLES = 100;
+
+function DemoAlertButton() {
+  const [countdown, setCountdown] = useState(null);
+
+  const handlePress = async () => {
+    await scheduleDemoAlert(10);
+    setCountdown(10);
+    const interval = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) { clearInterval(interval); return null; }
+        return c - 1;
+      });
+    }, 1000);
+  };
+
+  return (
+    <TouchableOpacity
+      style={[styles.demoBtn, countdown !== null && styles.demoBtnActive]}
+      onPress={handlePress}
+      disabled={countdown !== null}
+      activeOpacity={0.6}
+    >
+      <Text style={styles.demoBtnText}>
+        {countdown !== null ? `⚠️  ${countdown}s` : ''}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function HomeScreen() {
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -42,6 +72,8 @@ export default function HomeScreen() {
   // Load settings and device UUID, then auto-start monitoring
   useEffect(() => {
     (async () => {
+      await AsyncStorage.removeItem('@pothole_tracker/settings');
+      await requestNotificationPermissions();
       const s = await getSettings();
       setSettings(s);
       deviceUuidRef.current = await getDeviceUuid();
@@ -258,6 +290,9 @@ export default function HomeScreen() {
           )}
         </View>
       )}
+
+      {/* Demo button */}
+      <DemoAlertButton />
 
       {/* Description — hidden for clean demo */}
       {/* <View style={styles.infoCard}>
@@ -494,5 +529,19 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 13,
     lineHeight: 20,
+  },
+  demoBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: 'transparent',
+  },
+  demoBtnActive: {
+    backgroundColor: 'transparent',
+  },
+  demoBtnText: {
+    color: '#333',
+    fontSize: 12,
   },
 });

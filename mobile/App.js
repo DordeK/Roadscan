@@ -1,16 +1,19 @@
 import 'react-native-get-random-values'; // Must be the very first import (UUID polyfill)
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-// Import location service to ensure the background task is defined at module level
-// before expo-task-manager needs it.
 import './src/services/location';
+import { requestNotificationPermissions } from './src/services/notifications';
 
 import AppNavigator from './src/navigation';
 
 export default function App() {
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <NavigationContainer
