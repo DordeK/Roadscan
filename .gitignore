@@ -8,3 +8,4 @@ ml/training_data.csv
 ml/*.onnx
 ml/*.pkl
 node_modules/
+mobile/node_modules/
