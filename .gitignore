@@ -10,3 +10,6 @@ ml/*.pkl
 node_modules/
 mobile/node_modules/
 mobile/node_modules/
+
+dashboard/node_modules/
+backend/node_modules/
