@@ -3,48 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Breakpoint — Road Intelligence for Europe</title>
+<title>RoadScan - Know what's coming before your suspension does</title>
 <style>
   :root {
-    --orange: #FF6B00;
-    --orange-light: #FF8C35;
-    --orange-dim: rgba(255, 107, 0, 0.15);
-    --orange-glow: rgba(255, 107, 0, 0.4);
-    --bg: #0A0A0A;
-    --bg2: #111111;
-    --bg3: #1A1A1A;
-    --text: #F0F0F0;
-    --muted: #888888;
-    --green: #22C55E;
-    --yellow: #F59E0B;
-    --red: #EF4444;
-    --border: rgba(255,255,255,0.08);
+    --bg: #080b0e;
+    --panel: #121820;
+    --panel-2: #18212a;
+    --text: #f5f7fa;
+    --muted: #9ba8b2;
+    --quiet: #66727d;
+    --line: rgba(255, 255, 255, 0.11);
+    --orange: #ff7a1a;
+    --orange-soft: rgba(255, 122, 26, 0.14);
+    --blue: #2f9cf4;
+    --green: #35c85a;
+    --red: #ff4d4d;
+    --yellow: #f6b33f;
+    --shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
     height: 100vh;
     overflow: hidden;
+    background:
+      linear-gradient(120deg, rgba(47, 156, 244, 0.06), transparent 36%),
+      linear-gradient(300deg, rgba(255, 122, 26, 0.08), transparent 42%),
+      var(--bg);
+    color: var(--text);
+    font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  /* ── Slide Container ── */
-  .slides { width: 100%; height: 100vh; position: relative; }
+  .slides {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
 
   .slide {
     position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
-    padding: 48px 64px 80px;
+    padding: clamp(46px, 6vh, 70px) clamp(28px, 6vw, 78px) 86px;
     opacity: 0;
-    transform: translateX(60px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateX(48px);
+    transition: opacity 0.42s ease, transform 0.42s ease;
     pointer-events: none;
   }
 
@@ -56,991 +63,636 @@
 
   .slide.exit {
     opacity: 0;
-    transform: translateX(-60px);
+    transform: translateX(-48px);
   }
-
-  /* ── Navigation ── */
-  .nav {
-    position: fixed;
-    bottom: 36px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    z-index: 100;
-  }
-
-  .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-
-  .dot.active { background: var(--orange); width: 24px; border-radius: 4px; }
-
-  .nav-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .nav-btn:hover { border-color: var(--orange); color: var(--orange); }
 
   .slide-counter {
     position: fixed;
-    top: 28px; right: 40px;
+    top: 28px;
+    right: 38px;
+    z-index: 30;
+    color: var(--quiet);
     font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
   }
 
-  /* ── Slide 1: Title ── */
-  .slide-title {
-    text-align: center;
-    background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,107,0,0.12) 0%, transparent 70%);
-  }
-
-  .logo-mark {
-    width: 72px; height: 72px;
-    background: var(--orange);
-    border-radius: 20px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 32px;
-    margin: 0 auto 28px;
-    box-shadow: 0 0 40px var(--orange-glow);
-  }
-
-  .slide-title h1 {
-    font-size: 72px;
-    font-weight: 800;
-    letter-spacing: -2px;
-    line-height: 1;
-    background: linear-gradient(135deg, #fff 40%, var(--orange));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 20px;
-  }
-
-  .slide-title .tagline {
-    font-size: 22px;
-    color: var(--muted);
-    font-weight: 400;
-    letter-spacing: 0.02em;
-    max-width: 560px;
-  }
-
-  .title-badges {
-    display: flex; gap: 12px; margin-top: 40px; justify-content: center;
-  }
-
-  .badge {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 8px 18px;
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  .badge.hot { border-color: var(--orange-glow); color: var(--orange-light); }
-
-  /* ── Section Label ── */
-  .section-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--orange);
-    font-weight: 600;
-    margin-bottom: 16px;
-  }
-
-  /* ── Slide 2: Problem ── */
-  .slide-problem { align-items: flex-start; }
-
-  .slide-problem h2 {
-    font-size: 52px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    line-height: 1.1;
-    margin-bottom: 48px;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    width: 100%;
-  }
-
-  .stat-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px 24px;
-    transition: border-color 0.3s;
-  }
-
-  .stat-card:hover { border-color: var(--orange-glow); }
-
-  .stat-card .number {
-    font-size: 44px;
-    font-weight: 800;
-    color: var(--orange);
-    letter-spacing: -1px;
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-
-  .stat-card .label {
-    font-size: 14px;
-    color: var(--muted);
-    line-height: 1.5;
-  }
-
-  .problem-quote {
-    margin-top: 36px;
-    width: 100%;
-    font-size: 18px;
-    color: var(--muted);
-    border-left: 3px solid var(--orange);
-    padding-left: 20px;
-    line-height: 1.6;
-  }
-
-  /* ── Slide 3: How It Works ── */
-  .slide-how { align-items: flex-start; }
-
-  .slide-how h2 {
-    font-size: 52px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    margin-bottom: 48px;
-  }
-
-  .flow {
+  .nav {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    z-index: 30;
     display: flex;
     align-items: center;
-    gap: 0;
-    width: 100%;
-  }
-
-  .flow-step {
-    flex: 1;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px 24px;
-    text-align: center;
-    position: relative;
-  }
-
-  .flow-step .step-icon {
-    font-size: 36px;
-    margin-bottom: 14px;
-    display: block;
-  }
-
-  .flow-step .step-title {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: var(--text);
-  }
-
-  .flow-step .step-desc {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.5;
-  }
-
-  .flow-step .step-num {
-    position: absolute;
-    top: -12px; left: 50%;
+    gap: 12px;
     transform: translateX(-50%);
-    background: var(--orange);
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
   }
 
-  .flow-arrow {
-    font-size: 22px;
-    color: var(--orange);
-    margin: 0 8px;
-    flex-shrink: 0;
-  }
-
-  .dual-banner {
-    margin-top: 28px;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-
-  .passive-banner {
-    background: var(--orange-dim);
-    border: 1px solid var(--orange-glow);
-    border-radius: 12px;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 15px;
-  }
-
-  .passive-banner strong { color: var(--orange-light); }
-
-  .segment-banner {
-    background: rgba(34, 197, 94, 0.08);
-    border: 1px solid rgba(34, 197, 94, 0.35);
-    border-radius: 12px;
-    padding: 16px 24px;
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    font-size: 15px;
-  }
-
-  .segment-banner strong { color: #4ade80; }
-
-  .segment-types {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-  }
-
-  .seg-chip {
-    background: rgba(34, 197, 94, 0.12);
-    border: 1px solid rgba(34, 197, 94, 0.25);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 12px;
-    color: #86efac;
-  }
-
-  /* ── Slide 4: Tech / Crowdsourcing ── */
-  .slide-tech { align-items: flex-start; }
-
-  .slide-tech h2 {
-    font-size: 52px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    margin-bottom: 40px;
-  }
-
-  .loop-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    width: 100%;
-  }
-
-  .loop-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-  }
-
-  .loop-card .card-title {
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--orange);
-    margin-bottom: 14px;
-    display: flex; align-items: center; gap: 8px;
-  }
-
-  .loop-card ul {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-  }
-
-  .loop-card ul li {
-    font-size: 14px;
-    color: var(--muted);
-    display: flex; align-items: flex-start; gap: 8px;
-    line-height: 1.4;
-  }
-
-  .loop-card ul li::before {
-    content: '▸';
-    color: var(--orange);
-    font-size: 11px;
-    margin-top: 2px;
-    flex-shrink: 0;
-  }
-
-  .loop-card ul li span { color: var(--text); font-weight: 600; }
-
-  .confidence-formula {
-    margin-top: 20px;
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-  }
-
-  .formula-label { font-size: 13px; color: var(--muted); }
-
-  .formula-code {
-    font-family: 'Cascadia Code', 'Fira Code', monospace;
-    font-size: 17px;
-    color: var(--orange-light);
-    letter-spacing: 0.02em;
-  }
-
-  .formula-explain { font-size: 13px; color: var(--muted); text-align: right; }
-
-  /* ── Slide 5: ML Engine ── */
-  .slide-ml { align-items: flex-start; }
-
-  .slide-ml h2 {
-    font-size: 52px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    margin-bottom: 40px;
-  }
-
-  .ml-grid {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr;
-    gap: 20px;
-    width: 100%;
-  }
-
-  .ml-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 26px;
-  }
-
-  .ml-card.featured { border-color: var(--orange-glow); }
-
-  .ml-card .ml-title {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--orange);
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
-
-  .ml-card .big-stat {
-    font-size: 42px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    color: var(--text);
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .ml-card .big-stat span { color: var(--orange); }
-
-  .ml-card .sub-stat { font-size: 13px; color: var(--muted); }
-
-  .pipeline {
-    margin-top: 20px;
-    width: 100%;
-    display: flex;
-    gap: 2px;
-  }
-
-  .pipe-step {
-    flex: 1;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 12px;
-    text-align: center;
-    color: var(--muted);
-    position: relative;
-  }
-
-  .pipe-step strong { display: block; color: var(--text); margin-bottom: 2px; font-size: 13px; }
-  .pipe-step::after {
-    content: '→';
-    position: absolute;
-    right: -10px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--orange);
-    font-size: 14px;
-    z-index: 1;
-  }
-  .pipe-step:last-child::after { display: none; }
-
-  /* ── Slide 6: Dashboard ── */
-  .slide-dashboard { align-items: flex-start; }
-
-  .slide-dashboard h2 {
-    font-size: 52px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    margin-bottom: 36px;
-  }
-
-  .dashboard-preview {
-    width: 100%;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-
-  .dash-header {
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .dash-header .dot-row { display: flex; gap: 6px; }
-  .dash-header .dot-row span {
-    width: 10px; height: 10px; border-radius: 50%;
-  }
-
-  .dash-body {
-    display: grid;
-    grid-template-columns: 1fr 280px;
-    min-height: 240px;
-  }
-
-  .map-mock {
-    background: #0D1117;
-    padding: 24px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .map-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 16px;
-  }
-
-  .map-dots {
-    position: relative;
-    height: 160px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #0f1923 0%, #111d2b 100%);
-    border: 1px solid rgba(255,255,255,0.05);
-    overflow: hidden;
-  }
-
-  /* Road lines */
-  .road-h, .road-v {
-    position: absolute;
-    background: rgba(255,255,255,0.06);
-  }
-  .road-h { height: 2px; width: 100%; }
-  .road-v { width: 2px; height: 100%; }
-
-  .pothole-dot {
-    position: absolute;
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-    50% { opacity: 0.7; transform: translate(-50%,-50%) scale(1.3); }
-  }
-
-  .panel-mock {
-    background: var(--bg3);
-    border-left: 1px solid var(--border);
-    padding: 20px;
-  }
-
-  .panel-mock .panel-title {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
-
-  .pothole-item {
+  #dots {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
   }
 
-  .pothole-item:last-child { border-bottom: none; }
-
-  .sev-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    cursor: pointer;
+    transition: width 0.2s, background 0.2s;
   }
 
-  .sev-dot.high { background: var(--red); box-shadow: 0 0 6px var(--red); }
-  .sev-dot.med  { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-  .sev-dot.low  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-
-  .pothole-info { flex: 1; }
-  .pothole-info .pi-label { color: var(--text); font-weight: 600; }
-  .pothole-info .pi-sub { color: var(--muted); margin-top: 1px; }
-
-  .conf-bar {
-    width: 48px;
-    height: 4px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .conf-bar-fill {
-    height: 100%;
+  .dot.active {
+    width: 28px;
     background: var(--orange);
-    border-radius: 2px;
   }
 
-  /* ── Slide 7: Impact ── */
-  .slide-impact { align-items: flex-start; }
-
-  .slide-impact h2 {
-    font-size: 52px;
-    font-weight: 800;
-    letter-spacing: -1.5px;
-    margin-bottom: 40px;
-  }
-
-  .impact-grid {
+  .nav-btn {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    width: 100%;
-  }
-
-  .impact-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px 24px;
-    transition: all 0.3s;
-  }
-
-  .impact-card:hover {
-    border-color: var(--orange-glow);
-    transform: translateY(-2px);
-  }
-
-  .impact-card .impact-icon { font-size: 32px; margin-bottom: 14px; display: block; }
-  .impact-card .impact-title {
-    font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 10px;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
     color: var(--text);
-  }
-  .impact-card .impact-desc {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.6;
+    cursor: pointer;
+    font-size: 19px;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
   }
 
-  .cta-block {
-    margin-top: 28px;
-    width: 100%;
-    background: linear-gradient(135deg, var(--orange-dim), transparent);
-    border: 1px solid var(--orange-glow);
-    border-radius: 16px;
-    padding: 28px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
+  .nav-btn:hover {
+    border-color: rgba(255, 122, 26, 0.65);
+    color: var(--orange);
+    background: rgba(255, 122, 26, 0.08);
   }
 
-  .cta-block .cta-text h3 {
-    font-size: 22px;
+  .section-label {
+    color: var(--orange);
+    font-size: 12px;
     font-weight: 800;
-    margin-bottom: 6px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    text-align: center;
   }
-  .cta-block .cta-text p { font-size: 14px; color: var(--muted); }
 
-  .cta-stack {
+  h1,
+  h2 {
+    max-width: 1000px;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    font-weight: 860;
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  h1 { font-size: clamp(68px, 8vw, 112px); }
+  h2 { font-size: clamp(42px, 4.6vw, 64px); }
+
+  .lead {
+    max-width: 800px;
+    color: var(--muted);
+    font-size: clamp(19px, 1.8vw, 25px);
+    line-height: 1.35;
+    margin: 18px auto 0;
+    text-align: center;
+  }
+
+  .title-layout {
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .logo-image {
+    display: block;
+    width: min(210px, 22vw);
+    min-width: 150px;
+    margin: 30px auto 0;
+    border-radius: 30px;
+    box-shadow: var(--shadow);
+  }
+
+  .title-word {
+    background: linear-gradient(135deg, #ffffff 34%, #f8c179 74%, var(--orange));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .motto {
+    max-width: 830px;
+    color: var(--text);
+    font-size: clamp(28px, 4vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 780;
+    margin: 18px auto 0;
+    text-align: center;
+  }
+
+  .motto span { color: var(--orange); }
+
+  .shot-frame {
+    position: relative;
+    justify-self: center;
+    width: min(100%, 340px);
+    border: 1px solid var(--line);
+    border-radius: 32px;
+    overflow: hidden;
+    background: #050607;
+    box-shadow: var(--shadow);
+  }
+
+  .shot-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .shot-frame.tall {
+    max-height: 76vh;
+  }
+
+  .shot-frame.tall img {
+    max-height: 76vh;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  .shot-frame.map-shot img {
+    height: min(64vh, 560px);
+    object-fit: cover;
+    object-position: center 56%;
+  }
+
+  .shot-frame.notification-shot img {
+    height: min(68vh, 610px);
+    object-fit: cover;
+    object-position: top;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+    width: 100%;
+    max-width: 1260px;
+    margin: clamp(50px, 8vh, 84px) auto 0;
+  }
+
+  .metric {
+    min-height: 292px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.016));
+    padding: 38px 34px;
+    box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    flex-shrink: 0;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    min-width: 0;
   }
 
-  .cta-item {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
+  .metric .number {
+    color: var(--orange);
+    font-size: clamp(76px, 8.6vw, 132px);
+    font-weight: 880;
+    letter-spacing: -0.045em;
+    line-height: 0.9;
+    white-space: nowrap;
   }
-  .cta-item span { color: var(--orange); font-weight: 700; }
+
+  .metric .number.compact {
+    font-size: clamp(56px, 6.4vw, 92px);
+    letter-spacing: -0.055em;
+  }
+
+  .metric .label {
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1.24;
+    margin-top: 22px;
+  }
+
+  .metric .label strong {
+    color: var(--text);
+    font-weight: 750;
+  }
+
+  .split-layout {
+    display: grid;
+    grid-template-columns: minmax(250px, 360px) minmax(0, 1fr);
+    gap: clamp(26px, 5vw, 62px);
+    align-items: center;
+    width: 100%;
+    max-width: 1060px;
+    min-height: min(55vh, 520px);
+    margin: clamp(32px, 5vh, 58px) auto 0;
+  }
+
+  .step-list {
+    display: grid;
+    grid-auto-rows: 102px;
+    gap: 14px;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 16px;
+    align-items: start;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: var(--panel);
+    padding: 16px 20px;
+    height: 102px;
+  }
+
+  .step-num {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 18px;
+    font-weight: 860;
+  }
+
+  .step strong {
+    display: block;
+    color: var(--text);
+    font-size: 21px;
+    line-height: 1.1;
+    margin-bottom: 7px;
+  }
+
+  .step span {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .alert-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .alert-stat {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+    padding: 20px;
+  }
+
+  .alert-stat b {
+    display: block;
+    color: var(--orange);
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 9px;
+  }
+
+  .alert-stat span {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    width: 100%;
+    max-width: 1040px;
+    margin: clamp(42px, 7vh, 76px) auto 0;
+  }
+
+  .tech-card {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+    padding: 30px;
+    min-height: 230px;
+  }
+
+  .tech-card.featured {
+    border-color: rgba(255, 122, 26, 0.34);
+    background: linear-gradient(160deg, rgba(255, 122, 26, 0.12), rgba(255, 255, 255, 0.02));
+  }
+
+  .tech-card .kicker {
+    color: var(--orange);
+    font-size: 12px;
+    font-weight: 820;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .tech-card h3 {
+    color: var(--text);
+    font-size: 32px;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    margin-bottom: 18px;
+  }
+
+  .tech-card ul {
+    list-style: none;
+    display: grid;
+    gap: 11px;
+  }
+
+  .tech-card li {
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1.4;
+  }
+
+  .tech-card li strong { color: var(--text); }
+
+  .network-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    width: 100%;
+    max-width: 1120px;
+    margin: clamp(48px, 8vh, 82px) auto 0;
+  }
+
+  .network-card {
+    min-height: 230px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+    padding: 26px;
+    box-shadow: var(--shadow);
+  }
+
+  .network-card .count {
+    color: var(--blue);
+    font-size: 56px;
+    font-weight: 890;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    margin-bottom: 20px;
+  }
+
+  .network-card strong {
+    display: block;
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1.12;
+    margin-bottom: 10px;
+  }
+
+  .network-card span {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 920px) {
+    .slide { padding: 34px 22px 82px; }
+    .title-layout,
+    .split-layout,
+    .metric-grid,
+    .tech-grid,
+    .network-grid {
+      grid-template-columns: 1fr;
+    }
+    .shot-frame,
+    .shot-frame.tall {
+      display: none;
+    }
+    .metric,
+    .tech-card,
+    .network-card {
+      min-height: auto;
+    }
+  }
 </style>
 </head>
 <body>
 
-<div class="slide-counter" id="counter">1 / 7</div>
+<div class="slide-counter" id="counter">1 / 6</div>
 
 <div class="slides">
 
-  <!-- SLIDE 1: TITLE -->
-  <div class="slide slide-title active" id="slide-1">
-    <div class="logo-mark">⚡</div>
-    <h1>Breakpoint</h1>
-    <p class="tagline">Passively detect potholes and map road quality using the phone already in your pocket.</p>
-    <div class="title-badges">
-      <span class="badge hot">React Native · Node.js · PostGIS · ML</span>
-      <span class="badge">Crowdsourced Infrastructure Intelligence</span>
+  <section class="slide active" id="slide-1">
+    <div class="title-layout">
+      <h1 class="title-word">RoadScan</h1>
+      <div class="motto">Know what's coming <span>before your suspension does.</span></div>
+      <p class="lead">Turn your phone into a road scanner. As you drive, RoadScan detects road surface problems, stores them on a shared live road map, and warns the next driver before they hit the same hole.</p>
+      <img class="logo-image" src="WhatsApp%20Image%202026-06-21%20at%202.20.05%20PM.jpeg" alt="RoadScan logo">
     </div>
-  </div>
+  </section>
 
-  <!-- SLIDE 2: PROBLEM -->
-  <div class="slide slide-problem" id="slide-2">
-    <div class="section-label">The Problem</div>
-    <h2>Europe's roads are<br>quietly failing.</h2>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="number">€26B</div>
-        <div class="label">Annual cost of vehicle damage from poor road conditions across the EU</div>
-      </div>
-      <div class="stat-card">
-        <div class="number">5.9M</div>
-        <div class="label">Kilometres of road in the EU — most without real-time quality data</div>
-      </div>
-      <div class="stat-card">
-        <div class="number">Weeks</div>
-        <div class="label">Typical delay from pothole formation to detection by maintenance crews</div>
-      </div>
-    </div>
-    <div class="problem-quote">
-      Road maintenance is reactive, not predictive. By the time a pothole is reported, hundreds of drivers have already hit it — and taxpayers foot the bill.
-    </div>
-  </div>
+  <section class="slide" id="slide-2">
+    <div class="section-label">Why It Is A Problem</div>
+    <h2>Europe has too much road damage to inspect by hand.</h2>
+    <p class="lead">Potholes damage cars before cities know where the problem is.</p>
 
-  <!-- SLIDE 3: HOW IT WORKS -->
-  <div class="slide slide-how" id="slide-3">
-    <div class="section-label">The Solution</div>
-    <h2>Every drive is a<br>road inspection.</h2>
-    <div class="flow">
-      <div class="flow-step">
-        <div class="step-num">1</div>
-        <span class="step-icon">📱</span>
-        <div class="step-title">Sense</div>
-        <div class="step-desc">20 Hz accelerometer. Runs in the background.</div>
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="number">5M</div>
+        <div class="label">kilometres of paved road to monitor</div>
       </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="step-num">2</div>
-        <span class="step-icon">🧠</span>
-        <div class="step-title">Detect</div>
-        <div class="step-desc">ML model flags potholes with severity in real-time.</div>
+      <div class="metric">
+        <div class="number">294M</div>
+        <div class="label">vehicles feeling road quality every day</div>
       </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="step-num">3</div>
-        <span class="step-icon">📍</span>
-        <div class="step-title">Map</div>
-        <div class="step-desc">GPS-stamped, clustered, live heatmap.</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="step-num">4</div>
-        <span class="step-icon">🔔</span>
-        <div class="step-title">Warn</div>
-        <div class="step-desc">Audio alert 100m before a pothole. Eyes on the road.</div>
+      <div class="metric">
+        <div class="number compact">EUR103B</div>
+        <div class="label">estimated yearly road damage and safety cost</div>
       </div>
     </div>
-    <div class="dual-banner">
-      <div class="passive-banner">
-        ⚡ <div><strong>Fully passive.</strong> Open the app once. Runs in the background — no interaction needed.</div>
+  </section>
+
+  <section class="slide" id="slide-3">
+    <div class="section-label">Passive Road Scan</div>
+    <h2>The phone silently builds the road map.</h2>
+
+    <div class="split-layout">
+      <div class="shot-frame map-shot">
+        <img src="WhatsApp%20Image%202026-06-21%20at%201.50.23%20PM.jpeg" alt="RoadScan route map screenshot">
       </div>
-      <div class="segment-banner">
-        <div>
-          <div><strong>Road Segmentation.</strong> Every 2 seconds, the road surface is classified and mapped as a continuous layer.</div>
-          <div class="segment-types">
-            <span class="seg-chip">Smooth Asphalt</span>
-            <span class="seg-chip">Rough Asphalt</span>
-            <span class="seg-chip">Cobblestone</span>
-            <span class="seg-chip">Gravel</span>
+
+      <div class="step-list">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <strong>Drive normally.</strong>
+            <span>The app runs in the background using the phone sensors.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <strong>Detect road events.</strong>
+            <span>Sharp impacts are stored as potholes, bumps, or rough road sections.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <strong>Build the map.</strong>
+            <span>Each event is saved with GPS location, severity, confidence, and road surface type.</span>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- SLIDE 4: TECH / CROWDSOURCING LOOP -->
-  <div class="slide slide-tech" id="slide-4">
-    <div class="section-label">Architecture</div>
-    <h2>Crowdsourcing that<br>gets smarter over time.</h2>
-    <div class="loop-container">
-      <div class="loop-card">
-        <div class="card-title">📱 Mobile App</div>
-        <ul>
-          <li>React Native + Expo — iOS & Android</li>
-          <li>Accelerometer at <span>20 Hz</span>, background GPS</li>
-          <li>Surface classification every <span>2s</span></li>
-          <li>Audio warnings within <span>100m</span></li>
-        </ul>
-      </div>
-      <div class="loop-card">
-        <div class="card-title">⚙️ Backend</div>
-        <ul>
-          <li>Node.js + <span>PostGIS</span> spatial clustering</li>
-          <li>Deduplicates reports within <span>15m</span> radius</li>
-          <li>ONNX inference in <span>&lt;100ms</span></li>
-          <li>Daily confidence decay — stale data auto-expires</li>
-        </ul>
-      </div>
-      <div class="loop-card" style="border-color: rgba(34,197,94,0.35);">
-        <div class="card-title" style="color: #4ade80;">🛣️ Road Segmentation</div>
-        <ul>
-          <li>Parallel to detection — runs every <span>2 seconds</span></li>
-          <li>Decision tree classifier on <span>40-sample</span> window</li>
-          <li>4 surface types: smooth, rough, cobblestone, gravel</li>
-          <li>Builds a <span>continuous segment map</span> alongside potholes</li>
-        </ul>
-      </div>
-      <div class="loop-card">
-        <div class="card-title">🗄️ Data Model</div>
-        <ul>
-          <li>PostgreSQL with <span>GEOMETRY(POINT)</span> indexes</li>
-          <li>Confidence grows with each new confirmation</li>
-          <li>Severity upgrades after <span>2+ devices</span> agree</li>
-          <li>Device UUIDs only — <span>no PII</span> collected</li>
-        </ul>
-      </div>
-    </div>
-    <div class="confidence-formula">
-      <div class="formula-label">Confidence formula</div>
-      <div class="formula-code">confidence = min(99, 30 × ln(reports + 1))</div>
-      <div class="formula-explain">1 report → 21% · 5 reports → 49%<br>Never reaches 100% — always open to revision</div>
-    </div>
-  </div>
+  <section class="slide" id="slide-4">
+    <div class="section-label">Advance Warning</div>
+    <h2>The next driver gets an audio alert in advance.</h2>
 
-  <!-- SLIDE 5: ML ENGINE -->
-  <div class="slide slide-ml" id="slide-5">
-    <div class="section-label">ML Pipeline</div>
-    <h2>Trained on real roads.<br>Deployed in milliseconds.</h2>
-    <div class="ml-grid">
-      <div class="ml-card featured">
-        <div class="ml-title">Model</div>
-        <div class="big-stat">Random<br><span>Forest</span></div>
-        <div class="sub-stat" style="margin-top:10px">300 estimators · depth 12<br>Trained on real sensor data from city roads, highways, rough terrain</div>
+    <div class="split-layout">
+      <div class="shot-frame notification-shot">
+        <img src="WhatsApp%20Image%202026-06-21%20at%201.50.21%20PM.jpeg" alt="RoadScan pothole ahead notification screenshot">
       </div>
-      <div class="ml-card">
-        <div class="ml-title">Input Window</div>
-        <div class="big-stat"><span>20</span></div>
-        <div class="sub-stat">Accelerometer samples<br>1 second at 20 Hz<br>21 extracted features</div>
-      </div>
-      <div class="ml-card">
-        <div class="ml-title">Inference Time</div>
-        <div class="big-stat">&lt;<span>100</span><span style="font-size:24px">ms</span></div>
-        <div class="sub-stat">ONNX Runtime in Node.js<br>No Python at runtime<br>AUC 0.806</div>
-      </div>
-    </div>
-    <div class="pipeline">
-      <div class="pipe-step"><strong>Raw IMU</strong>ax, ay, az @ 20Hz</div>
-      <div class="pipe-step"><strong>Gravity Filter</strong>Low-pass α=0.8</div>
-      <div class="pipe-step"><strong>Vertical Accel</strong>Gravity-aligned</div>
-      <div class="pipe-step"><strong>21 Features</strong>Stats + jerk + V-spike</div>
-      <div class="pipe-step"><strong>RF Model</strong>ONNX inference</div>
-      <div class="pipe-step"><strong>Decision</strong>prob ≥ 0.03 → pothole</div>
-    </div>
-    <div class="passive-banner" style="margin-top:20px">
-      🔬 <div>Surface classification runs in parallel — classifying road type (smooth asphalt, rough, cobblestone, gravel) every 2 seconds using a separate decision tree model exported to <strong>JSON rules</strong> for zero-dependency runtime evaluation.</div>
-    </div>
-  </div>
 
-  <!-- SLIDE 6: DASHBOARD PREVIEW -->
-  <div class="slide slide-dashboard" id="slide-6">
-    <div class="section-label">Visualization</div>
-    <h2>Two layers. One map.<br>Potholes + road segmentation.</h2>
-    <div class="dashboard-preview">
-      <div class="dash-header">
-        <div class="dot-row">
-          <span style="background:#ef4444"></span>
-          <span style="background:#f59e0b"></span>
-          <span style="background:#22c55e"></span>
-        </div>
-        <div style="font-size:12px;color:var(--muted);flex:1;text-align:center;">Breakpoint Dashboard — Live Road Intelligence</div>
-        <div style="font-size:12px;color:var(--orange);">● LIVE</div>
-      </div>
-      <div class="dash-body">
-        <div class="map-mock">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <div class="map-label" style="margin-bottom:0">Road Quality Map</div>
-            <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);">
-              <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;background:#22c55e;border-radius:2px;display:inline-block"></span>Smooth</span>
-              <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;background:#f59e0b;border-radius:2px;display:inline-block"></span>Rough</span>
-              <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:4px;background:#ef4444;border-radius:2px;display:inline-block"></span>Cobblestone</span>
-              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#ef4444;border-radius:50%;display:inline-block;box-shadow:0 0 4px #ef4444"></span>Pothole</span>
+      <div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>
+              <strong>RoadScan checks hazards nearby.</strong>
+              <span>The app fetches known potholes around the driver and compares them with current GPS position.</span>
             </div>
           </div>
-          <div class="map-dots">
-            <div class="road-h" style="top:40%"></div>
-            <div class="road-h" style="top:70%"></div>
-            <div class="road-v" style="left:30%"></div>
-            <div class="road-v" style="left:60%"></div>
-            <!-- Pothole dots -->
-            <div class="pothole-dot" style="width:16px;height:16px;background:#ef4444;top:38%;left:28%;box-shadow:0 0 12px #ef4444;"></div>
-            <div class="pothole-dot" style="width:12px;height:12px;background:#f59e0b;top:42%;left:55%;box-shadow:0 0 10px #f59e0b;animation-delay:0.5s"></div>
-            <div class="pothole-dot" style="width:10px;height:10px;background:#22c55e;top:68%;left:32%;box-shadow:0 0 8px #22c55e;animation-delay:1s"></div>
-            <div class="pothole-dot" style="width:14px;height:14px;background:#ef4444;top:72%;left:62%;box-shadow:0 0 12px #ef4444;animation-delay:0.3s"></div>
-            <div class="pothole-dot" style="width:10px;height:10px;background:#f59e0b;top:35%;left:72%;box-shadow:0 0 8px #f59e0b;animation-delay:0.8s"></div>
-            <!-- Road segmentation overlays -->
-            <div style="position:absolute;top:38.5%;left:0;width:26%;height:5px;background:rgba(34,197,94,0.45);border-radius:2px;" title="Smooth"></div>
-            <div style="position:absolute;top:38.5%;left:29%;width:24%;height:5px;background:rgba(245,158,11,0.5);border-radius:2px;" title="Rough"></div>
-            <div style="position:absolute;top:38.5%;left:56%;width:28%;height:5px;background:rgba(239,68,68,0.5);border-radius:2px;" title="Cobblestone"></div>
-            <div style="position:absolute;top:69.5%;left:5%;width:20%;height:5px;background:rgba(34,197,94,0.45);border-radius:2px;"></div>
-            <div style="position:absolute;top:69.5%;left:27%;width:40%;height:5px;background:rgba(245,158,11,0.5);border-radius:2px;"></div>
-          </div>
-        </div>
-        <div class="panel-mock">
-          <div class="panel-title">⚠ Danger Zones</div>
-          <div class="pothole-item">
-            <div class="sev-dot high"></div>
-            <div class="pothole-info">
-              <div class="pi-label">Rue de la Loi</div>
-              <div class="pi-sub" style="font-size:11px">HIGH · 3 reports</div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              <strong>The warning plays at 50 meters.</strong>
+              <span>The alert is audio-first, so the driver does not need to look at the screen.</span>
             </div>
-            <div class="conf-bar"><div class="conf-bar-fill" style="width:78%"></div></div>
-          </div>
-          <div class="pothole-item">
-            <div class="sev-dot high"></div>
-            <div class="pothole-info">
-              <div class="pi-label">A7 Southbound</div>
-              <div class="pi-sub" style="font-size:11px">HIGH · 5 reports</div>
-            </div>
-            <div class="conf-bar"><div class="conf-bar-fill" style="width:90%"></div></div>
-          </div>
-          <div class="pothole-item">
-            <div class="sev-dot med"></div>
-            <div class="pothole-info">
-              <div class="pi-label">Gran Via</div>
-              <div class="pi-sub" style="font-size:11px">MED · 2 reports</div>
-            </div>
-            <div class="conf-bar"><div class="conf-bar-fill" style="width:52%"></div></div>
-          </div>
-          <div class="pothole-item">
-            <div class="sev-dot low"></div>
-            <div class="pothole-info">
-              <div class="pi-label">Unter den Linden</div>
-              <div class="pi-sub" style="font-size:11px">LOW · 1 report</div>
-            </div>
-            <div class="conf-bar"><div class="conf-bar-fill" style="width:21%"></div></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- SLIDE 7: IMPACT -->
-  <div class="slide slide-impact" id="slide-7">
-    <div class="section-label">Impact</div>
-    <h2>Built for Europe's<br>smart cities.</h2>
-    <div class="impact-grid">
-      <div class="impact-card">
-        <span class="impact-icon">🏙️</span>
-        <div class="impact-title">City Governments</div>
-        <div class="impact-desc">Data-driven repair prioritization. No expensive inspection vehicles needed.</div>
+  <section class="slide" id="slide-5">
+    <div class="section-label">Main Technologies</div>
+    <h2>Our stack</h2>
+
+    <div class="tech-grid">
+      <div class="tech-card featured">
+        <div class="kicker">App</div>
+        <h3>React Native</h3>
+        <ul>
+          <li>One mobile app for the driver.</li>
+          <li>Runs while driving.</li>
+          <li>Plays audio alerts.</li>
+        </ul>
       </div>
-      <div class="impact-card">
-        <span class="impact-icon">🗺️</span>
-        <div class="impact-title">Navigation Apps</div>
-        <div class="impact-desc">Open API for Waze, Google Maps, HERE. Route drivers around hazards automatically.</div>
+
+      <div class="tech-card featured">
+        <div class="kicker">Sensors</div>
+        <h3>GPS + accelerometer</h3>
+        <ul>
+          <li>GPS tells us where the car is.</li>
+          <li>Accelerometer tells us what the road feels like.</li>
+          <li>Impacts become map points.</li>
+        </ul>
       </div>
-      <div class="impact-card">
-        <span class="impact-icon">🚛</span>
-        <div class="impact-title">Logistics & Fleets</div>
-        <div class="impact-desc">Every delivery vehicle becomes a sensor. Protect fleets, reduce downtime.</div>
+
+      <div class="tech-card">
+        <div class="kicker">Detection</div>
+        <h3>ML pothole model</h3>
+        <ul>
+          <li>Detects holes and bumps.</li>
+          <li>Measures severity from the impact.</li>
+          <li>Classifies road surface quality.</li>
+        </ul>
+      </div>
+
+      <div class="tech-card">
+        <div class="kicker">Map</div>
+        <h3>Node.js + PostGIS</h3>
+        <ul>
+          <li>Stores all reports.</li>
+          <li>Merges repeated detections.</li>
+          <li>Serves nearby potholes for warnings.</li>
+        </ul>
       </div>
     </div>
-    <div class="cta-block">
-      <div class="cta-text">
-        <h3>One app. Every road. All of Europe.</h3>
-        <p>No new infrastructure. Only the phones already on Europe's roads. More drivers = better map.</p>
+  </section>
+
+  <section class="slide" id="slide-6">
+    <div class="section-label">Network Effect</div>
+    <h2>The more people drive, the smarter the roads get.</h2>
+
+    <div class="network-grid">
+      <div class="network-card">
+        <div class="count">1</div>
+        <strong>driver detects a pothole.</strong>
+        <span>The first detection creates a warning point with location, severity, and confidence.</span>
       </div>
-      <div class="cta-stack">
-        <div class="cta-item"><span>✓</span> No new hardware required</div>
-        <div class="cta-item"><span>✓</span> GDPR-compliant — no PII collected</div>
-        <div class="cta-item"><span>✓</span> Open API for integrations</div>
-        <div class="cta-item"><span>✓</span> Scales with user count</div>
+      <div class="network-card">
+        <div class="count">10</div>
+        <strong>drivers confirm the same spot.</strong>
+        <span>RoadScan clusters the reports and raises confidence instead of creating duplicate pins.</span>
+      </div>
+      <div class="network-card">
+        <div class="count">1000</div>
+        <strong>drivers map the city.</strong>
+        <span>Every commute becomes a passive road inspection, making the live road map more useful for everyone.</span>
       </div>
     </div>
-  </div>
+
+  </section>
 
 </div>
 
-<!-- Navigation -->
 <div class="nav">
-  <button class="nav-btn" id="prev">←</button>
+  <button class="nav-btn" id="prev" aria-label="Previous slide">&lt;</button>
   <div id="dots"></div>
-  <button class="nav-btn" id="next">→</button>
+  <button class="nav-btn" id="next" aria-label="Next slide">&gt;</button>
 </div>
 
 <script>
-  const TOTAL = 7;
+  const TOTAL = 6;
   let current = 1;
 
   const dotsEl = document.getElementById('dots');
   const counter = document.getElementById('counter');
 
-  // Build dots
-  for (let i = 1; i <= TOTAL; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === 1 ? ' active' : '');
-    d.addEventListener('click', () => goTo(i));
-    dotsEl.appendChild(d);
+  for (let i = 1; i <= TOTAL; i += 1) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 1 ? ' active' : '');
+    dot.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(dot);
   }
 
   function goTo(n) {
-    if (n < 1 || n > TOTAL) return;
-    const prev = document.getElementById('slide-' + current);
+    if (n < 1 || n > TOTAL || n === current) return;
+    const previous = document.getElementById('slide-' + current);
     const next = document.getElementById('slide-' + n);
-    prev.classList.add('exit');
-    prev.classList.remove('active');
+    previous.classList.add('exit');
+    previous.classList.remove('active');
     next.classList.add('active');
     next.classList.remove('exit');
-    setTimeout(() => prev.classList.remove('exit'), 500);
+    setTimeout(() => previous.classList.remove('exit'), 440);
     current = n;
     updateNav();
   }
 
   function updateNav() {
-    document.querySelectorAll('.dot').forEach((d, i) => {
-      d.classList.toggle('active', i + 1 === current);
+    document.querySelectorAll('.dot').forEach((dot, index) => {
+      dot.classList.toggle('active', index + 1 === current);
     });
     counter.textContent = current + ' / ' + TOTAL;
   }
@@ -1048,9 +700,9 @@
   document.getElementById('next').addEventListener('click', () => goTo(current + 1));
   document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
 
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') goTo(current + 1);
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goTo(current - 1);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown' || event.key === ' ') goTo(current + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') goTo(current - 1);
   });
 </script>
 </body>
