@@ -7,3 +7,4 @@ package-lock.json
 ml/training_data.csv
 ml/*.onnx
 ml/*.pkl
+node_modules/
