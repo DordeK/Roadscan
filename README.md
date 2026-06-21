@@ -1,4 +1,4 @@
-# Pothole Tracker
+# Roadscan
 
 A crowdsourced pothole detection and warning system. The mobile app runs in the background, detects bumps using the phone's accelerometer, logs pothole locations to the backend, and warns drivers when approaching known potholes. The web dashboard provides a map overview with severity and confidence data.
 
