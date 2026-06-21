@@ -9,3 +9,4 @@ ml/*.onnx
 ml/*.pkl
 node_modules/
 mobile/node_modules/
+mobile/node_modules/
